@@ -11,6 +11,12 @@ services:
     ports:
       - "9870:9870"
       - "9000:9000"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:9870/"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
 
   datanode:
     image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
@@ -23,10 +29,95 @@ services:
       SERVICE_PRECONDITION: "namenode:9870"
     ports:
       - "9864:9864"
+    depends_on:
+      - namenode
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:9864/"]
+      interval: 10s
+      timeout: 5s
+      retries: 8
+      start_period: 10s
+
+  zookeeper:
+    image: zookeeper:3.5
+    container_name: zookeeper
+    ports:
+      - "2181:2181"
+    healthcheck:
+      test: ["CMD-SHELL", "echo ruok | nc 127.0.0.1 2181"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  hive-metastore-postgresql:
+    image: postgres:12
+    container_name: hive-metastore-postgresql
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - hive_metastore_db:/var/lib/postgresql/data
+      - ./initdb/postgres:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres || exit 1"]
+      interval: 5s
+      retries: 12
+      timeout: 5s
+      start_period: 5s
+
+  hive-metastore:
+      image: bde2020/hive:2.3.2-postgresql-metastore
+      container_name: hive-metastore
+      env_file:
+        - ./config/hadoop-hive.env
+      
+      # ✅ FIX: Mount the script and run it
+      volumes:
+        - ./hive-startup.sh:/opt/hive-startup.sh
+        - ./config/hive-site.xml:/opt/hive/conf/hive-site.xml:ro  # Mount the config
+      command: ["bash", "/opt/hive-startup.sh"]
+
+      depends_on:
+        hive-metastore-postgresql:
+          condition: service_healthy
+        namenode:
+          condition: service_healthy
+        datanode:
+          condition: service_healthy
+      environment:
+        SERVICE_PRECONDITION: "namenode:9870 datanode:9864 hive-metastore-postgresql:5432"
+        HIVE_CORE_CONF_javax_jdo_option_ConnectionURL: "jdbc:postgresql://hive-metastore-postgresql:5432/metastore"
+        HIVE_CORE_CONF_javax_jdo_option_ConnectionDriverName: "org.postgresql.Driver"
+        HIVE_CORE_CONF_javax_jdo_option_ConnectionUserName: "hiveuser"
+        HIVE_CORE_CONF_javax_jdo_option_ConnectionPassword: "hivepassword"
+      ports:
+        - "9083:9083"
+      healthcheck:
+        test: ["CMD-SHELL", "curl -f http://localhost:9083 || exit 1"]
+        interval: 10s
+        timeout: 5s
+        retries: 6
+        start_period: 10s  
+  hive-server:
+      image: bde2020/hive:2.3.2-postgresql-metastore
+      container_name: hive-server
+      env_file:
+        - ./config/hadoop-hive.env
+      volumes:
+        - ./config/hive-site.xml:/opt/hive/conf/hive-site.xml:ro
+      environment:
+        HIVE_CORE_CONF_javax_jdo_option_ConnectionURL: "jdbc:postgresql://hive-metastore-postgresql:5432/metastore"
+        SERVICE_PRECONDITION: "hive-metastore:9083"
+      ports:
+        - "10000:10000"
+      depends_on:
+        hive-metastore:
+          condition: service_healthy
 
   spark-master:
     image: bde2020/spark-master:3.1.1-hadoop3.2
-    container_name: spark-master
+    container_name: spark-master-new
     ports:
       - "8080:8080"
       - "7077:7077"
@@ -34,6 +125,8 @@ services:
       - INIT_DAEMON_STEP=setup_spark
     env_file:
       - ./config/hadoop-hive.env
+    depends_on:
+      - namenode
 
   spark-worker:
     image: bde2020/spark-worker:3.1.1-hadoop3.2
@@ -43,91 +136,57 @@ services:
     ports:
       - "8081:8081"
     environment:
-      - "SPARK_MASTER=spark://spark-master:7077"
+      - "SPARK_MASTER=spark://spark-master-new:7077"
     env_file:
       - ./config/hadoop-hive.env
-
-  hive-server:
-    image: bde2020/hive:2.3.2-postgresql-metastore
-    container_name: hive-server
-    env_file:
-      - ./config/hadoop-hive.env
-    environment:
-      HIVE_CORE_CONF_javax_jdo_option_ConnectionURL: "jdbc:postgresql://hive-metastore/metastore"
-      SERVICE_PRECONDITION: "hive-metastore:9083"
-    ports:
-      - "10000:10000"
-
-  hive-metastore:
-    image: bde2020/hive:2.3.2-postgresql-metastore
-    container_name: hive-metastore
-    env_file:
-      - ./config/hadoop-hive.env
-    command: /opt/hive/bin/hive --service metastore
-    environment:
-      SERVICE_PRECONDITION: "namenode:9870 datanode:9864 hive-metastore-postgresql:5432"
-    ports:
-      - "9083:9083"
-
-  hive-metastore-postgresql:
-    image: bde2020/hive-metastore-postgresql:2.3.0
-    container_name: hive-metastore-postgresql
 
   hbase-master:
-      image: dajobe/hbase
-      container_name: hbase-master
-      hostname: hbase-master
-      volumes:
-        - hbase_data:/hadoop/hbase
-      ports:
-        - "16000:16000"
-        - "16010:16010"
-      command: master
-      env_file:
-        - ./config/hadoop-hive.env
-      environment:
-        # Point HBase to the Zookeeper container
-        HBASE_CONF_hbase_zookeeper_quorum: "zookeeper"
-        # Point HBase to the Namenode (HDFS) instead of local storage
-        HBASE_CONF_hbase_rootdir: "hdfs://namenode:9000/hbase"
-        # Enable distributed mode
-        HBASE_CONF_hbase_cluster_distributed: "true"
-        # Fix port configuration
-        HBASE_CONF_hbase_master_port: "16000"
-        HBASE_CONF_hbase_master_info_port: "16010"
-      depends_on:
-        - zookeeper
-        - namenode
-        - datanode
+    image: harisekhon/hbase
+    container_name: hbase-master
+    hostname: hbase-master
+    environment:
+      HBASE_MODE: master
+      HBASE_MASTER_HOST: hbase-master
+      HBASE_ZOOKEEPER_QUORUM: zookeeper
+      ZK_QUORUM: zookeeper
+    ports:
+      - "16010:16010"
+      - "16000:16000"
+    depends_on:
+      - zookeeper
 
   hbase-regionserver:
-      image: dajobe/hbase
-      container_name: hbase-regionserver
-      hostname: hbase-regionserver
-      volumes:
-        - hbase_data:/hadoop/hbase
-      ports:
-        - "16020:16020"
-        - "16030:16030"
-      command: regionserver
-      env_file:
-        - ./config/hadoop-hive.env
-      environment:
-        # Point to Master and Zookeeper
-        HBASE_CONF_hbase_master: "hbase-master:16000"
-        HBASE_CONF_hbase_zookeeper_quorum: "zookeeper"
-        # Ensure distributed mode is on
-        HBASE_CONF_hbase_cluster_distributed: "true"
-      depends_on:
-        - hbase-master
- 
-  zookeeper:
-    image: zookeeper:3.5
-    container_name: zookeeper
+    image: harisekhon/hbase
+    container_name: hbase-regionserver
+    hostname: hbase-regionserver
+    environment:
+      HBASE_MODE: regionserver
+      HBASE_MASTER_HOST: hbase-master
+      HBASE_ZOOKEEPER_QUORUM: zookeeper
+      ZK_QUORUM: zookeeper
     ports:
-      - "2181:2181"
+      - "16030:16030"
+      - "16020:16020"
+    depends_on:
+      - hbase-master
+
+  hdfs-init:
+    image: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
+    container_name: hdfs-init
+    volumes:
+      - namenode:/hadoop/dfs/name
+      - datanode:/hadoop/dfs/data
+      - ./initdb/hdfs-init.sh:/hdfs-init.sh:ro
+    entrypoint: ["/bin/bash", "-c", "/hdfs-init.sh"]
+    depends_on:
+      namenode:
+        condition: service_healthy
+      datanode:
+        condition: service_healthy
+    restart: "no"
 
 volumes:
   namenode:
   datanode:
   hbase_data:
+  hive_metastore_db:

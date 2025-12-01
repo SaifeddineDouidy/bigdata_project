@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+<configuration>
+  <!-- PostgreSQL Connection Settings -->
+  <property>
+    <name>javax.jdo.option.ConnectionURL</name>
+    <value>jdbc:postgresql://hive-metastore-postgresql:5432/metastore</value>
+    <description>PostgreSQL JDBC connection URL</description>
+  </property>
+  
+  <property>
+    <name>javax.jdo.option.ConnectionDriverName</name>
+    <value>org.postgresql.Driver</value>
+    <description>PostgreSQL JDBC driver class</description>
+  </property>
+  
+  <property>
+    <name>javax.jdo.option.ConnectionUserName</name>
+    <value>hiveuser</value>
+    <description>PostgreSQL username</description>
+  </property>
+  
+  <property>
+    <name>javax.jdo.option.ConnectionPassword</name>
+    <value>hivepassword</value>
+    <description>PostgreSQL password</description>
+  </property>
+  
+  <!-- Metastore Settings -->
+    <property>
+    <name>hive.metastore.warehouse.dir</name>
+    <value>hdfs://namenode:8020/user/hive/warehouse</value>
+    <description>location of default database for the warehouse</description>
+    </property>
+  
+  <property>
+    <name>hive.metastore.uris</name>
+    <value>thrift://hive-metastore:9083</value>
+    <description>Thrift URI for the remote metastore</description>
+  </property>
+  
+  <!-- Schema Verification -->
+  <property>
+    <name>hive.metastore.schema.verification</name>
+    <value>false</value>
+    <description>Enforce metastore schema version consistency</description>
+  </property>
+  
+  <property>
+    <name>datanucleus.autoCreateSchema</name>
+    <value>false</value>
+  </property>
+  
+  <property>
+    <name>datanucleus.fixedDatastore</name>
+    <value>true</value>
+  </property>
+</configuration>
