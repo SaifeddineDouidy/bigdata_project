@@ -1,3 +1,4 @@
+
 # Environment Verification Guide
 
 This document provides a step-by-step guide to verify that your Big Data environment (Hadoop, Hive, HBase, Spark) is correctly set up and ready for the project tasks.
@@ -29,11 +30,16 @@ docker exec -it namenode hdfs dfs -ls /user
 
 ## 3. Verify Hive
 
-Check if Hive is reachable and can execute queries.
+Check if Hive Metastore is running and accessible from Spark.
+
+Since HiveServer2 is not configured in this setup, Hive operations will be performed via Spark SQL with Hive support enabled.
+
+To verify, you can use Spark to connect to the metastore:
 
 ```bash
-# Connect to Hive Server using Beeline
-docker exec -it hive-server beeline -u jdbc:hive2://localhost:10000 -n hiveuser -p hivepassword -e "SHOW DATABASES;"
+docker exec -it spark-master /opt/spark/bin/spark-shell --master spark://spark-master:7077 --conf spark.sql.catalogImplementation=hive -i /dev/stdin <<EOF
+spark.sql("SHOW DATABASES").show()
+EOF
 ```
 
 **Expected Output:** Should list `default` and any other existing databases.

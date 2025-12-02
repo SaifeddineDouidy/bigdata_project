@@ -43,9 +43,6 @@ This project uses Docker Compose to orchestrate a multi-service Big Data stack i
     # Hadoop Namenode
     docker exec -it namenode bash
 
-    # Hive Server
-    docker exec -it hive-server bash
-
     # Spark Master
     docker exec -it spark-master bash
 

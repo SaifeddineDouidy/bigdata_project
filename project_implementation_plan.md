@@ -23,7 +23,7 @@ This document outlines the detailed steps to complete the project tasks: compari
 - **Goal:** Configure Spark to connect to the existing Hive Metastore.
 - **Verification:**
   - Ensure `hive-site.xml` is correctly mounted in Spark containers.
-  - Run a test query from Spark to list Hive tables.
+  - Run a test query from Spark to list Hive databases and tables.
 
 ### 2.2 Read CSV using Spark SQL with Hive
 - **Task:** Create a Hive table pointing to the CSV data using Spark SQL.
