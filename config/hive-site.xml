@@ -1,5 +1,12 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <configuration>
+  <!-- HDFS Configuration - ADD THIS -->
+  <property>
+    <name>fs.defaultFS</name>
+    <value>hdfs://namenode:8020</value>
+    <description>Default file system URI</description>
+  </property>
+
   <!-- PostgreSQL Connection Settings -->
   <property>
     <name>javax.jdo.option.ConnectionURL</name>
@@ -26,36 +33,36 @@
   </property>
   
   <!-- Metastore Settings -->
-    <property>
+  <property>
     <name>hive.metastore.warehouse.dir</name>
     <value>hdfs://namenode:8020/user/hive/warehouse</value>
     <description>location of default database for the warehouse</description>
-    </property>
+  </property>
   
   <property>
     <name>hive.metastore.uris</name>
     <value>thrift://hive-metastore:9083</value>
     <description>Thrift URI for the remote metastore</description>
   </property>
-
+  
   <property>
     <name>hive.server2.enable.doAs</name>
     <value>false</value>
     <description>Disable user impersonation for HiveServer2</description>
   </property>
-
+  
   <property>
     <name>hive.server2.thrift.port</name>
     <value>10000</value>
     <description>Port for HiveServer2 Thrift interface</description>
   </property>
-
+  
   <property>
     <name>hive.server2.thrift.bind.host</name>
     <value>0.0.0.0</value>
     <description>Bind host for HiveServer2 Thrift interface</description>
   </property>
-
+  
   <property>
     <name>hive.server2.authentication</name>
     <value>NONE</value>

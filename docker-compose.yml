@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   namenode:
     image: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
@@ -16,7 +14,7 @@ services:
       - ./config/hadoop-hive.env
     ports:
       - "9870:9870"
-      - "9000:9000"
+      - "8020:8020"
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:9870/"]
       interval: 10s
@@ -126,13 +124,20 @@ services:
     container_name: spark-master-new
     volumes:
       - ./config/hive-site.xml:/spark/conf/hive-site.xml
+      # Mount to ALL possible Hadoop config locations
       - ./config/hadoop/core-site.xml:/opt/hadoop/etc/hadoop/core-site.xml
       - ./config/hadoop/hdfs-site.xml:/opt/hadoop/etc/hadoop/hdfs-site.xml
+      - ./config/hadoop/core-site.xml:/etc/hadoop/core-site.xml
+      - ./config/hadoop/hdfs-site.xml:/etc/hadoop/hdfs-site.xml
+      - ./config/hadoop/core-site.xml:/spark/conf/core-site.xml
+      - ./config/hadoop/hdfs-site.xml:/spark/conf/hdfs-site.xml
     ports:
       - "8080:8080"
       - "7077:7077"
     environment:
       - INIT_DAEMON_STEP=setup_spark
+      - HADOOP_CONF_DIR=/opt/hadoop/etc/hadoop
+      - SPARK_CONF_DIR=/spark/conf
     env_file:
       - ./config/hadoop-hive.env
     depends_on:
@@ -140,7 +145,7 @@ services:
         condition: service_healthy
     networks:
       - hadoop-network
-
+      
   spark-worker:
     image: bde2020/spark-worker:3.1.1-hadoop3.2
     container_name: spark-worker
