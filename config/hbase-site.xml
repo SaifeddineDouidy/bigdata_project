@@ -1,0 +1,93 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+<configuration>
+  <!-- HDFS Configuration - Required for HBase to store data -->
+  <property>
+    <name>hbase.rootdir</name>
+    <value>hdfs://namenode:8020/hbase</value>
+    <description>The directory shared by RegionServers.</description>
+  </property>
+
+  <!-- ZooKeeper Configuration -->
+  <property>
+    <name>hbase.zookeeper.quorum</name>
+    <value>zookeeper</value>
+    <description>Comma separated list of servers in the ZooKeeper Quorum.</description>
+  </property>
+  
+  <property>
+    <name>hbase.zookeeper.property.clientPort</name>
+    <value>2181</value>
+    <description>Property from ZooKeeper's config zoo.cfg. The port at which the clients will connect.</description>
+  </property>
+
+  <!-- Cluster Configuration -->
+  <property>
+    <name>hbase.cluster.distributed</name>
+    <value>true</value>
+    <description>The mode the cluster will be in. Possible values are false for standalone mode and true for distributed mode.</description>
+  </property>
+
+  <!-- Master Configuration -->
+  <property>
+    <name>hbase.master</name>
+    <value>hbase-master:16000</value>
+    <description>The host and port that the HBase master runs at.</description>
+  </property>
+
+  <!-- ZooKeeper ZNode Parent -->
+  <property>
+    <name>zookeeper.znode.parent</name>
+    <value>/hbase</value>
+    <description>Path of the parent znode in ZooKeeper for HBase.</description>
+  </property>
+
+  <!-- ZooKeeper Session Timeout -->
+  <property>
+    <name>hbase.zookeeper.session.timeout</name>
+    <value>30000</value>
+    <description>ZooKeeper session timeout in milliseconds.</description>
+  </property>
+
+  <!-- Master Info Port -->
+  <property>
+    <name>hbase.master.info.port</name>
+    <value>16010</value>
+    <description>The port for the HBase Master web UI.</description>
+  </property>
+
+  <!-- RegionServer Info Port -->
+  <property>
+    <name>hbase.regionserver.info.port</name>
+    <value>16030</value>
+    <description>The port for the HBase RegionServer web UI.</description>
+  </property>
+
+  <!-- Client Retry Settings -->
+  <property>
+    <name>hbase.client.retries.number</name>
+    <value>35</value>
+    <description>Maximum number of retries for HBase client operations.</description>
+  </property>
+
+  <property>
+    <name>hbase.client.pause</name>
+    <value>100</value>
+    <description>General client pause value in milliseconds.</description>
+  </property>
+
+  <!-- Do not manage ZooKeeper (use external) -->
+  <property>
+    <name>hbase.unsafe.stream.capability.enforce</name>
+    <value>false</value>
+    <description>Controls whether HBase will check for stream capabilities.</description>
+  </property>
+
+  <!-- HBase Temporary Directory -->
+  <property>
+    <name>hbase.tmp.dir</name>
+    <value>/tmp/hbase-${user.name}</value>
+    <description>Temporary directory for HBase.</description>
+  </property>
+</configuration>
+
