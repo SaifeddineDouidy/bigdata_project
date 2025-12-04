@@ -6,10 +6,13 @@ services:
     volumes:
       - namenode:/hadoop/dfs/name
       - ./config/hadoop:/hadoop-config
+      - ./initdb/namenode-entrypoint.sh:/namenode-entrypoint.sh:ro
+    entrypoint: ["/bin/bash", "/namenode-entrypoint.sh"]
     environment:
       - CLUSTER_NAME=test
       - CORE_CONF_fs_defaultFS=hdfs://namenode:8020
       - HDFS_CONF_DIR=/hadoop-config
+      - HADOOP_CONF_DIR=/hadoop-config
     env_file:
       - ./config/hadoop-hive.env
     ports:
@@ -31,6 +34,8 @@ services:
     volumes:
       - datanode:/hadoop/dfs/data
       - ./config/hadoop:/hadoop-config
+      - ./initdb/datanode-entrypoint.sh:/datanode-entrypoint.sh:ro
+    entrypoint: ["/bin/bash", "/datanode-entrypoint.sh"]
     env_file:
       - ./config/hadoop-hive.env
     environment:
@@ -38,6 +43,7 @@ services:
       - CORE_CONF_fs_defaultFS=hdfs://namenode:8020
       - SERVICE_PRECONDITION=namenode:9870
       - HDFS_CONF_DIR=/hadoop-config        # <-- REQUIRED!!
+      - HADOOP_CONF_DIR=/hadoop-config
     ports:
       - "9864:9864"
     depends_on:

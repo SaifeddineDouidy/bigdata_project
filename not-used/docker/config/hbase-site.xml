@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+<configuration>
+    <property>
+        <name>hbase.cluster.distributed</name>
+        <value>true</value>
+    </property>
+    <property>
+        <name>hbase.rootdir</name>
+        <value>hdfs://bigdata:9000/hbase</value>
+    </property>
+    <property>
+        <name>hbase.zookeeper.quorum</name>
+        <value>zookeeper</value>
+    </property>
+    <property>
+        <name>hbase.zookeeper.property.dataDir</name>
+        <value>/opt/hbase/zookeeper</value>
+    </property>
+    <property>
+        <name>hbase.unsafe.stream.capability.enforce</name>
+        <value>false</value>
+    </property>
+    <property>
+        <name>hbase.master.wait.on.regionservers.mintostart</name>
+        <value>1</value>
+    </property>
+</configuration>

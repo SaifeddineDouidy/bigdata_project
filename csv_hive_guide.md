@@ -159,6 +159,7 @@ docker cp read_csv_hive.py spark-master-new:/read_csv_hive.py
 
 # Run the script
 docker exec -it spark-master-new /spark/bin/spark-submit /read_csv_hive.py
+/spark/bin/spark-submit --packages org.apache.spark:spark-avro_2.12:3.1.1 /read_csv_hive.py
 ```
 
 Note: If the path is different, check with `find / -name spark-submit 2>/dev/null` inside the container.
