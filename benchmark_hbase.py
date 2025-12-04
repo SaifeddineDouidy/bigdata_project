@@ -23,7 +23,8 @@ except ImportError:
     CSV_HDFS_PATH = "hdfs://namenode:8020/user/data/sample_sales.csv"
     HBASE_TABLE = "sales"
     HBASE_COLUMN_FAMILY = "cf"
-    HBASE_ZK_QUORUM = "zookeeper"
+    # Par défaut, utiliser le ZooKeeper embarqué dans le conteneur hbase-master
+    HBASE_ZK_QUORUM = "hbase-master"
     HIVE_DATABASE = "perf"
     HIVE_TABLE_HBASE_METRICS = "hbase_metrics"
     BENCHMARK_ITERATIONS = 3

@@ -6,13 +6,14 @@
 export HBASE_MANAGES_ZK=false
 
 # Java options for HBase
-export JAVA_HOME=${JAVA_HOME:-/usr/lib/jvm/java-8-openjdk-amd64}
+# The harisekhon/hbase image ships Java under /usr; keep this in sync with docker-compose.
+export JAVA_HOME=${JAVA_HOME:-/usr}
 
-# HBase configuration directory
-export HBASE_CONF_DIR=${HBASE_CONF_DIR:-/opt/hbase/conf}
+# HBase configuration directory (match docker-compose and image defaults)
+export HBASE_CONF_DIR=${HBASE_CONF_DIR:-/hbase/conf}
 
 # Hadoop configuration directory
-export HADOOP_CONF_DIR=${HADOOP_CONF_DIR:-/opt/hbase/conf}
+export HADOOP_CONF_DIR=${HADOOP_CONF_DIR:-/hbase/conf}
 
 # HBase log directory
 export HBASE_LOG_DIR=${HBASE_LOG_DIR:-/opt/hbase/logs}

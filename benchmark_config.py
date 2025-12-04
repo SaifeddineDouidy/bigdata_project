@@ -16,7 +16,10 @@ PARQUET_HDFS_DIR_ALT = "hdfs://namenode:8020/user/hive/warehouse/sales_parquet"
 HBASE_TABLE = "sales"
 HBASE_COLUMN_FAMILY = "cf"
 HBASE_ROWKEY_COLUMN = "id"
-HBASE_ZK_QUORUM = "zookeeper"
+# Point all clients to the embedded ZooKeeper running in the hbase-master
+# container, because the HBase Docker image always rewrites its own quorum
+# to localhost:2181 and does not actually use the external zookeeper service.
+HBASE_ZK_QUORUM = "hbase-master"
 HBASE_ZK_PORT = "2181"
 HBASE_MASTER_HOST = "hbase-master"
 HBASE_MASTER_PORT = "16000"

@@ -173,13 +173,10 @@ services:
     container_name: hbase-master
     hostname: hbase-master
     volumes:
-      - ./config/hbase-site.xml:/opt/hbase/conf/hbase-site.xml:ro
-      - ./config/hbase-site.xml:/hbase/conf/hbase-site.xml:ro
-      - ./config/hbase-env.sh:/opt/hbase/conf/hbase-env.sh:ro
+      # Use /hbase/conf as the single HBase configuration directory used by the image.
+      # Let the image manage hbase-site.xml internally to avoid sed -i on a bind mount.
       - ./config/hbase-env.sh:/hbase/conf/hbase-env.sh:ro
-      - ./config/hadoop/core-site.xml:/opt/hbase/conf/core-site.xml:ro
       - ./config/hadoop/core-site.xml:/hbase/conf/core-site.xml:ro
-      - ./config/hadoop/hdfs-site.xml:/opt/hbase/conf/hdfs-site.xml:ro
       - ./config/hadoop/hdfs-site.xml:/hbase/conf/hdfs-site.xml:ro
     environment:
       HBASE_MODE: master
@@ -187,10 +184,12 @@ services:
       HBASE_ZOOKEEPER_QUORUM: zookeeper
       ZK_QUORUM: zookeeper
       HBASE_MANAGES_ZK: "false"
-      HADOOP_CONF_DIR: /opt/hbase/conf
-      HBASE_CONF_DIR: /opt/hbase/conf
+      # Align with the image defaults and our volume mounts
+      HADOOP_CONF_DIR: /hbase/conf
+      HBASE_CONF_DIR: /hbase/conf
       HBASE_ROOT_DIR: "hdfs://namenode:8020/hbase"
-      JAVA_HOME: /usr/lib/jvm/java-8-openjdk-amd64
+      # Correct Java path inside harisekhon/hbase image
+      JAVA_HOME: /usr
       # Additional HBase configuration via environment
       HBASE_CLUSTER_DISTRIBUTED: "true"
       HBASE_ZOOKEEPER_PROPERTY_CLIENTPORT: "2181"
@@ -215,13 +214,9 @@ services:
     container_name: hbase-regionserver
     hostname: hbase-regionserver
     volumes:
-      - ./config/hbase-site.xml:/opt/hbase/conf/hbase-site.xml:ro
-      - ./config/hbase-site.xml:/hbase/conf/hbase-site.xml:ro
-      - ./config/hbase-env.sh:/opt/hbase/conf/hbase-env.sh:ro
+      # Use the same single configuration directory as the master, but let the image manage hbase-site.xml.
       - ./config/hbase-env.sh:/hbase/conf/hbase-env.sh:ro
-      - ./config/hadoop/core-site.xml:/opt/hbase/conf/core-site.xml:ro
       - ./config/hadoop/core-site.xml:/hbase/conf/core-site.xml:ro
-      - ./config/hadoop/hdfs-site.xml:/opt/hbase/conf/hdfs-site.xml:ro
       - ./config/hadoop/hdfs-site.xml:/hbase/conf/hdfs-site.xml:ro
     environment:
       HBASE_MODE: regionserver
@@ -229,10 +224,10 @@ services:
       HBASE_ZOOKEEPER_QUORUM: zookeeper
       ZK_QUORUM: zookeeper
       HBASE_MANAGES_ZK: "false"
-      HADOOP_CONF_DIR: /opt/hbase/conf
-      HBASE_CONF_DIR: /opt/hbase/conf
+      HADOOP_CONF_DIR: /hbase/conf
+      HBASE_CONF_DIR: /hbase/conf
       HBASE_ROOT_DIR: "hdfs://namenode:8020/hbase"
-      JAVA_HOME: /usr/lib/jvm/java-8-openjdk-amd64
+      JAVA_HOME: /usr
       # Additional HBase configuration via environment
       HBASE_CLUSTER_DISTRIBUTED: "true"
       HBASE_ZOOKEEPER_PROPERTY_CLIENTPORT: "2181"
