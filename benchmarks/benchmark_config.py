@@ -16,10 +16,8 @@ PARQUET_HDFS_DIR_ALT = "hdfs://namenode:8020/user/hive/warehouse/sales_parquet"
 HBASE_TABLE = "sales"
 HBASE_COLUMN_FAMILY = "cf"
 HBASE_ROWKEY_COLUMN = "id"
-# Point all clients to the embedded ZooKeeper running in the hbase-master
-# container, because the HBase Docker image always rewrites its own quorum
-# to localhost:2181 and does not actually use the external zookeeper service.
-HBASE_ZK_QUORUM = "hbase-master"
+# Point all clients to the external zookeeper service.
+HBASE_ZK_QUORUM = "zookeeper"
 HBASE_ZK_PORT = "2181"
 HBASE_MASTER_HOST = "hbase-master"
 HBASE_MASTER_PORT = "16000"
@@ -76,7 +74,7 @@ DOCKER_CONTAINER_NAMENODE = "namenode"
 # CONFIGURATION BENCHMARK
 # ============================================================
 # Nombre d'itérations pour calculer min/max/moyen
-BENCHMARK_ITERATIONS = 3
+BENCHMARK_ITERATIONS = 1
 
 # Requêtes SQL de test
 SQL_QUERIES = {
@@ -89,7 +87,7 @@ SQL_QUERIES = {
 # ============================================================
 # FICHIERS DE SORTIE
 # ============================================================
-OUTPUT_DIR = "./benchmark_results"
+OUTPUT_DIR = "/tmp/benchmark_results"
 COMPARISON_CSV = f"{OUTPUT_DIR}/comparison_results.csv"
 COMPARISON_REPORT = f"{OUTPUT_DIR}/benchmark_report.md"
 

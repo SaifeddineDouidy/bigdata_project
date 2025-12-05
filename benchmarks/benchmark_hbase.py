@@ -23,11 +23,11 @@ except ImportError:
     CSV_HDFS_PATH = "hdfs://namenode:8020/user/data/sample_sales.csv"
     HBASE_TABLE = "sales"
     HBASE_COLUMN_FAMILY = "cf"
-    # Par défaut, utiliser le ZooKeeper embarqué dans le conteneur hbase-master
-    HBASE_ZK_QUORUM = "hbase-master"
+    # Par défaut, utiliser le ZooKeeper externe
+    HBASE_ZK_QUORUM = "zookeeper"
     HIVE_DATABASE = "perf"
     HIVE_TABLE_HBASE_METRICS = "hbase_metrics"
-    BENCHMARK_ITERATIONS = 3
+    BENCHMARK_ITERATIONS = 1
 
 def now_ms():
     """Retourne le temps actuel en millisecondes"""
@@ -128,7 +128,9 @@ def write_to_hbase():
             scan = jvm.org.apache.hadoop.hbase.client.Scan()
             scanner = table.getScanner(scan)
             delete_list = jvm.java.util.ArrayList()
-            for result in scanner:
+            iterator = scanner.iterator()
+            while iterator.hasNext():
+                result = iterator.next()
                 delete = jvm.org.apache.hadoop.hbase.client.Delete(result.getRow())
                 delete_list.add(delete)
             if delete_list.size() > 0:
@@ -182,7 +184,9 @@ def scan_hbase():
     scanner = table.getScanner(scan)
     
     count = 0
-    for result in scanner:
+    iterator = scanner.iterator()
+    while iterator.hasNext():
+        iterator.next()
         count += 1
     
     scanner.close()
@@ -215,7 +219,9 @@ def hbase_to_dataframe():
     bytes_util = jvm.org.apache.hadoop.hbase.util.Bytes
     
     rows = []
-    for result in scanner:
+    iterator = scanner.iterator()
+    while iterator.hasNext():
+        result = iterator.next()
         rowkey = bytes_util.toString(result.getRow())
         id_val = bytes_util.toString(result.getValue(
             bytes_util.toBytes(HBASE_COLUMN_FAMILY), 
@@ -252,8 +258,8 @@ def hbase_to_dataframe():
     count = df.count()
     return df, count
 
-df_hbase, hbase_row_count = measure_time(hbase_to_dataframe)
-df_conv_time = measure_time(hbase_to_dataframe)[1]
+(df_hbase, hbase_row_count), df_conv_time = measure_time(hbase_to_dataframe)
+
 
 print(f"✓ Conversion terminée:")
 print(f"  Temps: {df_conv_time} ms")
@@ -320,73 +326,73 @@ spark.sql(f"CREATE DATABASE IF NOT EXISTS {HIVE_DATABASE}")
 metrics_data = [{
     "format": "hbase",
     "operation": "csv_read",
-    "time_ms": csv_read_time,
-    "time_min_ms": csv_read_time,
-    "time_max_ms": csv_read_time,
-    "time_avg_ms": csv_read_time,
+    "time_ms": float(csv_read_time),
+    "time_min_ms": float(csv_read_time),
+    "time_max_ms": float(csv_read_time),
+    "time_avg_ms": float(csv_read_time),
     "rows_processed": row_count,
     "timestamp": int(time.time())
 }, {
     "format": "hbase",
     "operation": "write",
-    "time_ms": write_metrics['avg'],
-    "time_min_ms": write_metrics['min'],
-    "time_max_ms": write_metrics['max'],
-    "time_avg_ms": write_metrics['avg'],
+    "time_ms": float(write_metrics['avg']),
+    "time_min_ms": float(write_metrics['min']),
+    "time_max_ms": float(write_metrics['max']),
+    "time_avg_ms": float(write_metrics['avg']),
     "rows_processed": write_metrics['result'],
     "timestamp": int(time.time())
 }, {
     "format": "hbase",
     "operation": "scan",
-    "time_ms": scan_metrics['avg'],
-    "time_min_ms": scan_metrics['min'],
-    "time_max_ms": scan_metrics['max'],
-    "time_avg_ms": scan_metrics['avg'],
+    "time_ms": float(scan_metrics['avg']),
+    "time_min_ms": float(scan_metrics['min']),
+    "time_max_ms": float(scan_metrics['max']),
+    "time_avg_ms": float(scan_metrics['avg']),
     "rows_processed": scan_metrics['result'],
     "timestamp": int(time.time())
 }, {
     "format": "hbase",
     "operation": "dataframe_conversion",
-    "time_ms": df_conv_time,
-    "time_min_ms": df_conv_time,
-    "time_max_ms": df_conv_time,
-    "time_avg_ms": df_conv_time,
+    "time_ms": float(df_conv_time),
+    "time_min_ms": float(df_conv_time),
+    "time_max_ms": float(df_conv_time),
+    "time_avg_ms": float(df_conv_time),
     "rows_processed": hbase_row_count,
     "timestamp": int(time.time())
 }, {
     "format": "hbase",
     "operation": "sql_select_all",
-    "time_ms": select_metrics['avg'],
-    "time_min_ms": select_metrics['min'],
-    "time_max_ms": select_metrics['max'],
-    "time_avg_ms": select_metrics['avg'],
+    "time_ms": float(select_metrics['avg']),
+    "time_min_ms": float(select_metrics['min']),
+    "time_max_ms": float(select_metrics['max']),
+    "time_avg_ms": float(select_metrics['avg']),
     "rows_processed": row_count,
     "timestamp": int(time.time())
 }, {
     "format": "hbase",
     "operation": "sql_filter",
-    "time_ms": filter_metrics['avg'],
-    "time_min_ms": filter_metrics['min'],
-    "time_max_ms": filter_metrics['max'],
-    "time_avg_ms": filter_metrics['avg'],
-    "rows_processed": filter_metrics['result'][0] if filter_metrics['result'] else 0,
+    "time_ms": float(filter_metrics['avg']),
+    "time_min_ms": float(filter_metrics['min']),
+    "time_max_ms": float(filter_metrics['max']),
+    "time_avg_ms": float(filter_metrics['avg']),
+    "rows_processed": filter_metrics['result'],
     "timestamp": int(time.time())
 }, {
     "format": "hbase",
     "operation": "sql_groupby",
-    "time_ms": groupby_metrics['avg'],
-    "time_min_ms": groupby_metrics['min'],
-    "time_max_ms": groupby_metrics['max'],
-    "time_avg_ms": groupby_metrics['avg'],
+    "time_ms": float(groupby_metrics['avg']),
+    "time_min_ms": float(groupby_metrics['min']),
+    "time_max_ms": float(groupby_metrics['max']),
+    "time_avg_ms": float(groupby_metrics['avg']),
     "rows_processed": len(groupby_metrics['result']),
     "timestamp": int(time.time())
 }, {
     "format": "hbase",
     "operation": "sql_count",
-    "time_ms": count_metrics['avg'],
-    "time_min_ms": count_metrics['min'],
-    "time_max_ms": count_metrics['max'],
-    "time_avg_ms": count_metrics['avg'],
+    "time_ms": float(count_metrics['avg']),
+    "time_min_ms": float(count_metrics['min']),
+    "time_max_ms": float(count_metrics['max']),
+    "time_avg_ms": float(count_metrics['avg']),
     "rows_processed": count_metrics['result'],
     "timestamp": int(time.time())
 }]
@@ -394,6 +400,19 @@ metrics_data = [{
 metrics_df = spark.createDataFrame(metrics_data)
 
 # Créer ou remplacer la table
+# Nettoyage préalable : supprimer la table et le dossier HDFS s'ils existent
+try:
+    spark.sql(f"DROP TABLE IF EXISTS {HIVE_DATABASE}.{HIVE_TABLE_HBASE_METRICS}")
+    
+    # Nettoyage manuel du dossier HDFS pour éviter l'erreur "location already exists"
+    fs = sc._jvm.org.apache.hadoop.fs.FileSystem.get(sc._jsc.hadoopConfiguration())
+    table_path = sc._jvm.org.apache.hadoop.fs.Path(f"/user/hive/warehouse/{HIVE_DATABASE}.db/{HIVE_TABLE_HBASE_METRICS}")
+    if fs.exists(table_path):
+        fs.delete(table_path, True)
+        print(f"✓ Dossier HDFS nettoyé: {table_path}")
+except Exception as e:
+    print(f"⚠ Avertissement lors du nettoyage: {e}")
+
 metrics_df.write.mode("overwrite").saveAsTable(f"{HIVE_DATABASE}.{HIVE_TABLE_HBASE_METRICS}")
 
 print(f"✓ Métriques stockées dans {HIVE_DATABASE}.{HIVE_TABLE_HBASE_METRICS}")

@@ -9,7 +9,7 @@ echo "UPLOAD DU CSV SUR HDFS"
 echo "=========================================="
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)/.."
-CSV_FILE="$SCRIPT_DIR/sample_sales.csv"
+CSV_FILE="$SCRIPT_DIR/data/sample_sales.csv"
 HDFS_PATH="/user/data/sample_sales.csv"
 CONTAINER="namenode"
 
@@ -36,8 +36,8 @@ echo "Destination HDFS: $HDFS_PATH"
 # Créer le répertoire sur HDFS si nécessaire
 echo ""
 echo "Création du répertoire /user/data sur HDFS..."
-docker exec $CONTAINER hdfs dfs -mkdir -p /user/data
-docker exec $CONTAINER hdfs dfs -chmod 777 /user/data
+MSYS_NO_PATHCONV=1 docker exec $CONTAINER hdfs dfs -mkdir -p /user/data
+MSYS_NO_PATHCONV=1 docker exec $CONTAINER hdfs dfs -chmod 777 /user/data
 
 # Copier le fichier dans le conteneur
 echo ""
@@ -47,13 +47,13 @@ docker cp "$CSV_FILE_DOCKER" $CONTAINER:/tmp/sample_sales.csv
 # Uploader sur HDFS
 echo ""
 echo "Upload du fichier sur HDFS..."
-docker exec $CONTAINER hdfs dfs -put -f /tmp/sample_sales.csv $HDFS_PATH
+MSYS_NO_PATHCONV=1 docker exec $CONTAINER hdfs dfs -put -f /tmp/sample_sales.csv $HDFS_PATH
 
 # Vérifier
 echo ""
 echo "Vérification de l'upload..."
-docker exec $CONTAINER hdfs dfs -ls $HDFS_PATH
-docker exec $CONTAINER hdfs dfs -cat $HDFS_PATH | head -5
+MSYS_NO_PATHCONV=1 docker exec $CONTAINER hdfs dfs -ls $HDFS_PATH
+MSYS_NO_PATHCONV=1 docker exec $CONTAINER hdfs dfs -cat $HDFS_PATH | head -5
 
 echo ""
 echo "=========================================="

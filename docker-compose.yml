@@ -7,7 +7,7 @@ services:
       - namenode:/hadoop/dfs/name
       - ./config/hadoop:/hadoop-config
       - ./initdb/namenode-entrypoint.sh:/namenode-entrypoint.sh:ro
-    entrypoint: ["/bin/bash", "/namenode-entrypoint.sh"]
+    entrypoint: [ "/bin/bash", "/namenode-entrypoint.sh" ]
     environment:
       - CLUSTER_NAME=test
       - CORE_CONF_fs_defaultFS=hdfs://namenode:8020
@@ -19,7 +19,7 @@ services:
       - "9870:9870"
       - "8020:8020"
     healthcheck:
-      test: ["CMD", "curl", "-fsS", "http://localhost:9870/"]
+      test: [ "CMD", "curl", "-fsS", "http://localhost:9870/" ]
       interval: 10s
       timeout: 5s
       retries: 12
@@ -35,21 +35,21 @@ services:
       - datanode:/hadoop/dfs/data
       - ./config/hadoop:/hadoop-config
       - ./initdb/datanode-entrypoint.sh:/datanode-entrypoint.sh:ro
-    entrypoint: ["/bin/bash", "/datanode-entrypoint.sh"]
+    entrypoint: [ "/bin/bash", "/datanode-entrypoint.sh" ]
     env_file:
       - ./config/hadoop-hive.env
     environment:
       - CLUSTER_NAME=test
       - CORE_CONF_fs_defaultFS=hdfs://namenode:8020
       - SERVICE_PRECONDITION=namenode:9870
-      - HDFS_CONF_DIR=/hadoop-config        # <-- REQUIRED!!
+      - HDFS_CONF_DIR=/hadoop-config # <-- REQUIRED!!
       - HADOOP_CONF_DIR=/hadoop-config
     ports:
       - "9864:9864"
     depends_on:
       - namenode
     healthcheck:
-      test: ["CMD", "curl", "-fsS", "http://localhost:9864/"]
+      test: [ "CMD", "curl", "-fsS", "http://localhost:9864/" ]
       interval: 10s
       timeout: 5s
       retries: 8
@@ -63,11 +63,14 @@ services:
     ports:
       - "2181:2181"
     healthcheck:
-      test: ["CMD-SHELL", "echo ruok | nc 127.0.0.1 2181"]
+      test: [ "CMD-SHELL", "echo ruok | nc 127.0.0.1 2181" ]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 10s
+    volumes:
+      - zookeeper_data:/data
+      - zookeeper_datalog:/datalog
     networks:
       - hadoop-network
 
@@ -82,7 +85,7 @@ services:
       - hive_metastore_db:/var/lib/postgresql/data
       - ./initdb/postgres:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U hiveuser -d metastore || exit 1"]
+      test: [ "CMD-SHELL", "pg_isready -U hiveuser -d metastore || exit 1" ]
       interval: 5s
       retries: 12
       timeout: 5s
@@ -96,11 +99,11 @@ services:
     env_file:
       - ./config/hadoop-hive.env
     volumes:
-      - ./hive-startup.sh:/opt/hive-startup.sh
+      - ./scripts/hive-startup.sh:/opt/hive-startup.sh
       - ./config/hive-site.xml:/opt/hive/conf/hive-site.xml:ro
       - ./config//hadoop/core-site.xml:/opt/hive/conf/core-site.xml:ro
       - ./config/hadoop/hdfs-site.xml:/opt/hive/conf/hdfs-site.xml:ro
-    command: ["bash", "/opt/hive-startup.sh"]
+    command: [ "bash", "/opt/hive-startup.sh" ]
     depends_on:
       hive-metastore-postgresql:
         condition: service_healthy
@@ -117,7 +120,7 @@ services:
     ports:
       - "9083:9083"
     healthcheck:
-      test: ["CMD-SHELL", "nc -z hive-metastore 9083 || exit 1"]
+      test: [ "CMD-SHELL", "nc -z hive-metastore 9083 || exit 1" ]
       interval: 10s
       timeout: 5s
       retries: 6
@@ -125,7 +128,7 @@ services:
     networks:
       - hadoop-network
 
-# update spark master depend on zooekeeper and hbase-master ( walid )
+  # update spark master depend on zooekeeper and hbase-master ( walid )
   spark-master:
     image: bde2020/spark-master:3.1.1-hadoop3.2
     container_name: spark-master-new
@@ -137,6 +140,7 @@ services:
       - ./config/hadoop/hdfs-site.xml:/etc/hadoop/hdfs-site.xml
       - ./config/hadoop/core-site.xml:/spark/conf/core-site.xml
       - ./config/hadoop/hdfs-site.xml:/spark/conf/hdfs-site.xml
+      - ./config/hbase-conf-dump/hbase-site.xml:/spark/conf/hbase-site.xml
     ports:
       - "8080:8080"
       - "7077:7077"
@@ -155,7 +159,7 @@ services:
         condition: service_started
     networks:
       - hadoop-network
-      
+
   spark-worker:
     image: bde2020/spark-worker:3.1.1-hadoop3.2
     container_name: spark-worker
@@ -163,6 +167,7 @@ services:
       - ./config/hive-site.xml:/spark/conf/hive-site.xml
       - ./config/hadoop/core-site.xml:/opt/hadoop/etc/hadoop/core-site.xml
       - ./config/hadoop/hdfs-site.xml:/opt/hadoop/etc/hadoop/hdfs-site.xml
+      - ./config/hbase-conf-dump/hbase-site.xml:/spark/conf/hbase-site.xml
     depends_on:
       - spark-master
     ports:
@@ -181,7 +186,7 @@ services:
     volumes:
       # Use /hbase/conf as the single HBase configuration directory used by the image.
       # Let the image manage hbase-site.xml internally to avoid sed -i on a bind mount.
-      - ./config/hbase-env.sh:/hbase/conf/hbase-env.sh:ro
+      - ./config/hbase-conf-dump:/hbase/conf
       - ./config/hadoop/core-site.xml:/hbase/conf/core-site.xml:ro
       - ./config/hadoop/hdfs-site.xml:/hbase/conf/hdfs-site.xml:ro
     environment:
@@ -221,7 +226,7 @@ services:
     hostname: hbase-regionserver
     volumes:
       # Use the same single configuration directory as the master, but let the image manage hbase-site.xml.
-      - ./config/hbase-env.sh:/hbase/conf/hbase-env.sh:ro
+      - ./config/hbase-conf-dump:/hbase/conf
       - ./config/hadoop/core-site.xml:/hbase/conf/core-site.xml:ro
       - ./config/hadoop/hdfs-site.xml:/hbase/conf/hdfs-site.xml:ro
     environment:
@@ -260,7 +265,7 @@ services:
       - namenode:/hadoop/dfs/name
       - datanode:/hadoop/dfs/data
       - ./initdb/hdfs-init.sh:/hdfs-init.sh:ro
-    entrypoint: ["/bin/bash", "-c", "/hdfs-init.sh"]
+    entrypoint: [ "/bin/bash", "-c", "/hdfs-init.sh" ]
     depends_on:
       namenode:
         condition: service_healthy
@@ -275,9 +280,10 @@ volumes:
   datanode:
   hive_metastore_db:
   hbase_data:
+  zookeeper_data:
+  zookeeper_datalog:
+
 
 networks:
   hadoop-network:
     driver: bridge
-
-

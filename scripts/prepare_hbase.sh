@@ -106,9 +106,9 @@ docker exec $CONTAINER bash -c "echo 'describe \"$HBASE_TABLE\"' | $HBASE_CMD sh
 # 8. Vérifier le répertoire HBase sur HDFS
 echo ""
 echo "8. Vérification du répertoire /hbase sur HDFS..."
-if docker exec namenode hdfs dfs -test -d /hbase 2>/dev/null; then
+if MSYS_NO_PATHCONV=1 docker exec namenode hdfs dfs -test -d /hbase 2>/dev/null; then
     echo "✓ Répertoire /hbase existe"
-    docker exec namenode hdfs dfs -ls /hbase | head -5
+    MSYS_NO_PATHCONV=1 docker exec namenode hdfs dfs -ls /hbase | head -5
 else
     echo "⚠ Répertoire /hbase n'existe pas (sera créé automatiquement par HBase)"
 fi

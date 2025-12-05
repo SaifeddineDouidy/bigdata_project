@@ -57,8 +57,8 @@ check_success() {
 # ============================================================
 run_step "ÉTAPE 1: VÉRIFICATION DES SERVICES"
 
-if [ -f "$SCRIPT_DIR/scripts/verify_services.sh" ]; then
-    bash "$SCRIPT_DIR/scripts/verify_services.sh"
+if [ -f "$SCRIPT_DIR/verify_services.sh" ]; then
+    bash "$SCRIPT_DIR/verify_services.sh"
     if ! check_success "Vérification des services"; then
         echo -e "${YELLOW}⚠ Certains services ont des problèmes, mais continuons...${NC}"
     fi
@@ -71,16 +71,16 @@ fi
 # ============================================================
 run_step "ÉTAPE 2: PRÉPARATION DE HBASE"
 
-if [ -f "$SCRIPT_DIR/scripts/prepare_hbase.sh" ]; then
-    bash "$SCRIPT_DIR/scripts/prepare_hbase.sh"
+if [ -f "$SCRIPT_DIR/prepare_hbase.sh" ]; then
+    bash "$SCRIPT_DIR/prepare_hbase.sh"
     if ! check_success "Préparation de HBase"; then
         echo -e "${YELLOW}⚠ Préparation HBase a des problèmes, mais continuons...${NC}"
     fi
 else
     echo "Script de préparation HBase non trouvé, création manuelle..."
-    docker exec $HBASE_CONTAINER bash -c "echo 'disable \"sales\"' | hbase shell -n" 2>/dev/null || true
-    docker exec $HBASE_CONTAINER bash -c "echo 'drop \"sales\"' | hbase shell -n" 2>/dev/null || true
-    docker exec $HBASE_CONTAINER bash -c "echo 'create \"sales\", \"cf\"' | hbase shell -n"
+    MSYS_NO_PATHCONV=1 docker exec $HBASE_CONTAINER bash -c "echo 'disable \"sales\"' | hbase shell -n" 2>/dev/null || true
+    MSYS_NO_PATHCONV=1 docker exec $HBASE_CONTAINER bash -c "echo 'drop \"sales\"' | hbase shell -n" 2>/dev/null || true
+    MSYS_NO_PATHCONV=1 docker exec $HBASE_CONTAINER bash -c "echo 'create \"sales\", \"cf\"' | hbase shell -n"
 fi
 
 # ============================================================
@@ -90,13 +90,13 @@ run_step "ÉTAPE 3: CRÉATION DU CATALOG JSON (OPTIONNEL)"
 
 echo "Note: Cette etape est optionnelle. Le catalog est defini dans les scripts de benchmark."
 
-if [ -f "$SCRIPT_DIR/scripts/create_hbase_catalog.py" ]; then
+if [ -f "$SCRIPT_DIR/create_hbase_catalog.py" ]; then
     if command -v python3 &> /dev/null; then
-        python3 "$SCRIPT_DIR/scripts/create_hbase_catalog.py" 2>/dev/null && \
+        python3 "$SCRIPT_DIR/create_hbase_catalog.py" 2>/dev/null && \
             echo -e "${GREEN}✓ Catalog JSON créé${NC}" || \
             echo -e "${YELLOW}⚠ Création du catalog ignorée (optionnel)${NC}"
     elif command -v python &> /dev/null; then
-        python "$SCRIPT_DIR/scripts/create_hbase_catalog.py" 2>/dev/null && \
+        python "$SCRIPT_DIR/create_hbase_catalog.py" 2>/dev/null && \
             echo -e "${GREEN}✓ Catalog JSON créé${NC}" || \
             echo -e "${YELLOW}⚠ Création du catalog ignorée (optionnel)${NC}"
     else
@@ -114,8 +114,8 @@ run_step "ÉTAPE 4: BENCHMARK HBASE"
 echo "Copie des scripts dans le conteneur Spark..."
 
 # Convertir les chemins pour Windows
-HBASE_SCRIPT=$(convert_path_for_docker "$SCRIPT_DIR/benchmark_hbase.py")
-CONFIG_SCRIPT=$(convert_path_for_docker "$SCRIPT_DIR/benchmark_config.py")
+HBASE_SCRIPT=$(convert_path_for_docker "$SCRIPT_DIR/../benchmarks/benchmark_hbase.py")
+CONFIG_SCRIPT=$(convert_path_for_docker "$SCRIPT_DIR/../benchmarks/benchmark_config.py")
 
 echo "Fichier source HBase: $HBASE_SCRIPT"
 echo "Fichier config: $CONFIG_SCRIPT"
@@ -132,7 +132,7 @@ MSYS_NO_PATHCONV=1 docker cp "$CONFIG_SCRIPT" $SPARK_CONTAINER:/benchmark_config
 
 # Vérifier que les fichiers sont bien copiés
 echo "Vérification des fichiers copiés..."
-docker exec $SPARK_CONTAINER ls -la /benchmark_hbase.py || {
+MSYS_NO_PATHCONV=1 docker exec $SPARK_CONTAINER ls -la /benchmark_hbase.py || {
     echo -e "${RED}✗ Le fichier benchmark_hbase.py n'existe pas dans le conteneur${NC}"
     exit 1
 }
@@ -140,8 +140,9 @@ docker exec $SPARK_CONTAINER ls -la /benchmark_hbase.py || {
 echo ""
 echo "Exécution du benchmark HBase..."
 echo "Cela peut prendre plusieurs minutes..."
-docker exec $SPARK_CONTAINER /spark/bin/spark-submit \
+MSYS_NO_PATHCONV=1 docker exec $SPARK_CONTAINER /spark/bin/spark-submit \
     --master spark://spark-master-new:7077 \
+    --files /spark/conf/hbase-site.xml \
     --packages org.apache.hbase:hbase-client:2.1.3,org.apache.hbase:hbase-common:2.1.3 \
     /benchmark_hbase.py
 
@@ -160,8 +161,8 @@ run_step "ÉTAPE 5: BENCHMARK PARQUET"
 echo "Copie des scripts dans le conteneur Spark..."
 
 # Convertir les chemins pour Windows
-PARQUET_SCRIPT=$(convert_path_for_docker "$SCRIPT_DIR/benchmark_parquet_complete.py")
-CONFIG_SCRIPT=$(convert_path_for_docker "$SCRIPT_DIR/benchmark_config.py")
+PARQUET_SCRIPT=$(convert_path_for_docker "$SCRIPT_DIR/../benchmarks/benchmark_parquet_complete.py")
+CONFIG_SCRIPT=$(convert_path_for_docker "$SCRIPT_DIR/../benchmarks/benchmark_config.py")
 
 echo "Fichier source Parquet: $PARQUET_SCRIPT"
 
@@ -175,7 +176,7 @@ MSYS_NO_PATHCONV=1 docker cp "$CONFIG_SCRIPT" $SPARK_CONTAINER:/benchmark_config
     echo "benchmark_config.py non trouvé, utilisation des valeurs par défaut"
 
 # Vérifier que les fichiers sont bien copiés
-docker exec $SPARK_CONTAINER ls -la /benchmark_parquet_complete.py || {
+MSYS_NO_PATHCONV=1 docker exec $SPARK_CONTAINER ls -la /benchmark_parquet_complete.py || {
     echo -e "${RED}✗ Le fichier benchmark_parquet_complete.py n'existe pas dans le conteneur${NC}"
     exit 1
 }
@@ -183,7 +184,7 @@ docker exec $SPARK_CONTAINER ls -la /benchmark_parquet_complete.py || {
 echo ""
 echo "Exécution du benchmark Parquet..."
 echo "Cela peut prendre plusieurs minutes..."
-docker exec $SPARK_CONTAINER /spark/bin/spark-submit \
+MSYS_NO_PATHCONV=1 docker exec $SPARK_CONTAINER /spark/bin/spark-submit \
     --master spark://spark-master-new:7077 \
     /benchmark_parquet_complete.py
 
@@ -202,8 +203,8 @@ run_step "ÉTAPE 6: GÉNÉRATION DU TABLEAU COMPARATIF"
 echo "Copie des scripts dans le conteneur Spark..."
 
 # Convertir les chemins pour Windows
-COMPARISON_SCRIPT=$(convert_path_for_docker "$SCRIPT_DIR/generate_comparison.py")
-CONFIG_SCRIPT=$(convert_path_for_docker "$SCRIPT_DIR/benchmark_config.py")
+COMPARISON_SCRIPT=$(convert_path_for_docker "$SCRIPT_DIR/../benchmarks/generate_comparison.py")
+CONFIG_SCRIPT=$(convert_path_for_docker "$SCRIPT_DIR/../benchmarks/benchmark_config.py")
 
 echo "Fichier source comparison: $COMPARISON_SCRIPT"
 
@@ -217,14 +218,14 @@ MSYS_NO_PATHCONV=1 docker cp "$CONFIG_SCRIPT" $SPARK_CONTAINER:/benchmark_config
     echo "benchmark_config.py non trouvé, utilisation des valeurs par défaut"
 
 # Vérifier que les fichiers sont bien copiés
-docker exec $SPARK_CONTAINER ls -la /generate_comparison.py || {
+MSYS_NO_PATHCONV=1 docker exec $SPARK_CONTAINER ls -la /generate_comparison.py || {
     echo -e "${RED}✗ Le fichier generate_comparison.py n'existe pas dans le conteneur${NC}"
     exit 1
 }
 
 echo ""
 echo "Génération du tableau comparatif..."
-docker exec $SPARK_CONTAINER /spark/bin/spark-submit \
+MSYS_NO_PATHCONV=1 docker exec $SPARK_CONTAINER /spark/bin/spark-submit \
     --master spark://spark-master-new:7077 \
     /generate_comparison.py
 
@@ -242,12 +243,12 @@ echo ""
 echo "Tentative de récupération des résultats depuis le conteneur..."
 
 # Créer le répertoire local
-mkdir -p "$SCRIPT_DIR/benchmark_results"
+mkdir -p "$SCRIPT_DIR/../benchmark_results"
 
 # Essayer de copier les résultats si disponibles
-docker exec $SPARK_CONTAINER test -d /tmp/benchmark_results 2>/dev/null
+MSYS_NO_PATHCONV=1 docker exec $SPARK_CONTAINER test -d /tmp/benchmark_results 2>/dev/null
 if [ $? -eq 0 ]; then
-    RESULTS_DIR=$(convert_path_for_docker "$SCRIPT_DIR/benchmark_results")
+    RESULTS_DIR=$(convert_path_for_docker "$SCRIPT_DIR/../benchmark_results")
     MSYS_NO_PATHCONV=1 docker cp $SPARK_CONTAINER:/tmp/benchmark_results/. "$RESULTS_DIR/" 2>/dev/null && \
         echo "✓ Résultats copiés localement" || \
         echo "⚠ Impossible de copier les résultats localement"
@@ -280,5 +281,5 @@ echo "  > SELECT * FROM parquet_metrics;"
 echo "  > SELECT * FROM comparison_results;"
 echo ""
 echo "Vérifier les fichiers Parquet sur HDFS:"
-echo "  docker exec namenode hdfs dfs -ls /user/output/parquet_sample"
+echo "  MSYS_NO_PATHCONV=1 docker exec namenode hdfs dfs -ls /user/output/parquet_sample"
 echo ""

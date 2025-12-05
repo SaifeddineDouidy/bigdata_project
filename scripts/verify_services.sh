@@ -67,13 +67,15 @@ done
 # 3. Vérifier HDFS
 echo ""
 echo "3. Vérification HDFS..."
-if docker exec namenode hdfs dfs -ls / >/dev/null 2>&1; then
+if OUTPUT=$(MSYS_NO_PATHCONV=1 docker exec namenode hdfs dfs -ls / 2>&1); then
     print_status 0 "HDFS accessible"
     echo ""
     echo "Contenu de la racine HDFS:"
-    docker exec namenode hdfs dfs -ls / 2>&1 | head -10
+    echo "$OUTPUT" | head -10
 else
     print_status 1 "HDFS non accessible"
+    echo "Erreur détaillée:"
+    echo "$OUTPUT"
     echo "Tentative de diagnostic..."
     docker logs namenode --tail 20 2>&1 | tail -5
 fi
@@ -164,16 +166,16 @@ fi
 # 9. Vérifier le fichier CSV sur HDFS
 echo ""
 echo "9. Vérification du dataset CSV sur HDFS..."
-CSV_CHECK=$(docker exec namenode hdfs dfs -test -f /user/data/sample_sales.csv 2>&1)
+CSV_CHECK=$(MSYS_NO_PATHCONV=1 docker exec namenode hdfs dfs -test -f /user/data/sample_sales.csv 2>&1)
 CSV_EXIT=$?
 if [ $CSV_EXIT -eq 0 ]; then
     print_status 0 "Fichier CSV trouvé sur HDFS"
     echo ""
     echo "Taille du fichier:"
-    docker exec namenode hdfs dfs -du -h /user/data/sample_sales.csv 2>&1
+    MSYS_NO_PATHCONV=1 docker exec namenode hdfs dfs -du -h /user/data/sample_sales.csv 2>&1
     echo ""
     echo "Premières lignes:"
-    docker exec namenode hdfs dfs -cat /user/data/sample_sales.csv 2>&1 | head -5
+    MSYS_NO_PATHCONV=1 docker exec namenode hdfs dfs -cat /user/data/sample_sales.csv 2>&1 | head -5
 else
     print_status 1 "Fichier CSV non trouvé sur HDFS"
     echo "Le fichier doit être uploadé sur HDFS avant de continuer"

@@ -22,7 +22,7 @@ except ImportError:
     PARQUET_HDFS_DIR = "hdfs://namenode:8020/user/output/parquet_sample"
     HIVE_DATABASE = "perf"
     HIVE_TABLE_PARQUET_METRICS = "parquet_metrics"
-    BENCHMARK_ITERATIONS = 3
+    BENCHMARK_ITERATIONS = 1
 
 def now_ms():
     """Retourne le temps actuel en millisecondes"""
@@ -376,10 +376,10 @@ print("=" * 60)
 metrics_data = [{
     "format": "parquet",
     "operation": "csv_read",
-    "time_ms": csv_read_time,
-    "time_min_ms": csv_read_time,
-    "time_max_ms": csv_read_time,
-    "time_avg_ms": csv_read_time,
+    "time_ms": float(csv_read_time),
+    "time_min_ms": float(csv_read_time),
+    "time_max_ms": float(csv_read_time),
+    "time_avg_ms": float(csv_read_time),
     "rows_processed": row_count,
     "size_bytes": 0,
     "size_mb": 0.0,
@@ -388,10 +388,10 @@ metrics_data = [{
 }, {
     "format": "parquet",
     "operation": "write",
-    "time_ms": write_metrics['avg'],
-    "time_min_ms": write_metrics['min'],
-    "time_max_ms": write_metrics['max'],
-    "time_avg_ms": write_metrics['avg'],
+    "time_ms": float(write_metrics['avg']),
+    "time_min_ms": float(write_metrics['min']),
+    "time_max_ms": float(write_metrics['max']),
+    "time_avg_ms": float(write_metrics['avg']),
     "rows_processed": write_metrics['result'],
     "size_bytes": parquet_size_bytes,
     "size_mb": parquet_size_mb,
@@ -400,10 +400,10 @@ metrics_data = [{
 }, {
     "format": "parquet",
     "operation": "read",
-    "time_ms": read_metrics['avg'],
-    "time_min_ms": read_metrics['min'],
-    "time_max_ms": read_metrics['max'],
-    "time_avg_ms": read_metrics['avg'],
+    "time_ms": float(read_metrics['avg']),
+    "time_min_ms": float(read_metrics['min']),
+    "time_max_ms": float(read_metrics['max']),
+    "time_avg_ms": float(read_metrics['avg']),
     "rows_processed": parquet_row_count,
     "size_bytes": parquet_size_bytes,
     "size_mb": parquet_size_mb,
@@ -412,10 +412,10 @@ metrics_data = [{
 }, {
     "format": "parquet",
     "operation": "sql_select_all",
-    "time_ms": select_metrics['avg'],
-    "time_min_ms": select_metrics['min'],
-    "time_max_ms": select_metrics['max'],
-    "time_avg_ms": select_metrics['avg'],
+    "time_ms": float(select_metrics['avg']),
+    "time_min_ms": float(select_metrics['min']),
+    "time_max_ms": float(select_metrics['max']),
+    "time_avg_ms": float(select_metrics['avg']),
     "rows_processed": row_count,
     "size_bytes": parquet_size_bytes,
     "size_mb": parquet_size_mb,
@@ -424,10 +424,10 @@ metrics_data = [{
 }, {
     "format": "parquet",
     "operation": "sql_filter",
-    "time_ms": filter_metrics['avg'],
-    "time_min_ms": filter_metrics['min'],
-    "time_max_ms": filter_metrics['max'],
-    "time_avg_ms": filter_metrics['avg'],
+    "time_ms": float(filter_metrics['avg']),
+    "time_min_ms": float(filter_metrics['min']),
+    "time_max_ms": float(filter_metrics['max']),
+    "time_avg_ms": float(filter_metrics['avg']),
     "rows_processed": filter_metrics['result'],
     "size_bytes": parquet_size_bytes,
     "size_mb": parquet_size_mb,
@@ -436,10 +436,10 @@ metrics_data = [{
 }, {
     "format": "parquet",
     "operation": "sql_groupby",
-    "time_ms": groupby_metrics['avg'],
-    "time_min_ms": groupby_metrics['min'],
-    "time_max_ms": groupby_metrics['max'],
-    "time_avg_ms": groupby_metrics['avg'],
+    "time_ms": float(groupby_metrics['avg']),
+    "time_min_ms": float(groupby_metrics['min']),
+    "time_max_ms": float(groupby_metrics['max']),
+    "time_avg_ms": float(groupby_metrics['avg']),
     "rows_processed": len(groupby_metrics['result']),
     "size_bytes": parquet_size_bytes,
     "size_mb": parquet_size_mb,
@@ -448,10 +448,10 @@ metrics_data = [{
 }, {
     "format": "parquet",
     "operation": "sql_count",
-    "time_ms": count_metrics['avg'],
-    "time_min_ms": count_metrics['min'],
-    "time_max_ms": count_metrics['max'],
-    "time_avg_ms": count_metrics['avg'],
+    "time_ms": float(count_metrics['avg']),
+    "time_min_ms": float(count_metrics['min']),
+    "time_max_ms": float(count_metrics['max']),
+    "time_avg_ms": float(count_metrics['avg']),
     "rows_processed": count_metrics['result'],
     "size_bytes": parquet_size_bytes,
     "size_mb": parquet_size_mb,
@@ -460,10 +460,10 @@ metrics_data = [{
 }, {
     "format": "parquet",
     "operation": "sql_complex",
-    "time_ms": complex_metrics['avg'],
-    "time_min_ms": complex_metrics['min'],
-    "time_max_ms": complex_metrics['max'],
-    "time_avg_ms": complex_metrics['avg'],
+    "time_ms": float(complex_metrics['avg']),
+    "time_min_ms": float(complex_metrics['min']),
+    "time_max_ms": float(complex_metrics['max']),
+    "time_avg_ms": float(complex_metrics['avg']),
     "rows_processed": len(complex_metrics['result']),
     "size_bytes": parquet_size_bytes,
     "size_mb": parquet_size_mb,
@@ -475,6 +475,19 @@ metrics_df = spark.createDataFrame(metrics_data)
 
 # Créer ou remplacer la table (avec gestion d'erreur)
 try:
+    # Nettoyage préalable : supprimer la table et le dossier HDFS s'ils existent
+    try:
+        spark.sql(f"DROP TABLE IF EXISTS {HIVE_DATABASE}.{HIVE_TABLE_PARQUET_METRICS}")
+        
+        # Nettoyage manuel du dossier HDFS pour éviter l'erreur "location already exists"
+        fs = sc._jvm.org.apache.hadoop.fs.FileSystem.get(sc._jsc.hadoopConfiguration())
+        table_path = sc._jvm.org.apache.hadoop.fs.Path(f"/user/hive/warehouse/{HIVE_DATABASE}.db/{HIVE_TABLE_PARQUET_METRICS}")
+        if fs.exists(table_path):
+            fs.delete(table_path, True)
+            print(f"✓ Dossier HDFS nettoyé: {table_path}")
+    except Exception as e:
+        print(f"⚠ Avertissement lors du nettoyage: {e}")
+
     metrics_df.write.mode("overwrite").saveAsTable(f"{HIVE_DATABASE}.{HIVE_TABLE_PARQUET_METRICS}")
     print(f"✓ Métriques stockées dans {HIVE_DATABASE}.{HIVE_TABLE_PARQUET_METRICS}")
 except Exception as e:

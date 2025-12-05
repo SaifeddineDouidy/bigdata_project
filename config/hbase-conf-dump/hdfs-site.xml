@@ -1,0 +1,27 @@
+<configuration>
+  <property>
+    <name>dfs.replication</name>
+    <value>1</value>
+  </property>
+
+  <property>
+    <name>dfs.namenode.name.dir</name>
+    <value>/hadoop/dfs/name</value>
+  </property>
+
+  <property>
+    <name>dfs.datanode.data.dir</name>
+    <value>/hadoop/dfs/data</value>
+  </property>
+
+  <!-- REQUIRED: Namenode address for the datanodes -->
+  <property>
+    <name>dfs.namenode.rpc-address</name>
+    <value>namenode:8020</value>
+  </property>
+
+  <property>
+    <name>dfs.namenode.http-address</name>
+    <value>namenode:9870</value>
+  </property>
+</configuration>
