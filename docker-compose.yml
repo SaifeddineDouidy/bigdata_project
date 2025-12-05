@@ -125,12 +125,12 @@ services:
     networks:
       - hadoop-network
 
+# update spark master depend on zooekeeper and hbase-master ( walid )
   spark-master:
     image: bde2020/spark-master:3.1.1-hadoop3.2
     container_name: spark-master-new
     volumes:
       - ./config/hive-site.xml:/spark/conf/hive-site.xml
-      # Mount to ALL possible Hadoop config locations
       - ./config/hadoop/core-site.xml:/opt/hadoop/etc/hadoop/core-site.xml
       - ./config/hadoop/hdfs-site.xml:/opt/hadoop/etc/hadoop/hdfs-site.xml
       - ./config/hadoop/core-site.xml:/etc/hadoop/core-site.xml
@@ -149,6 +149,10 @@ services:
     depends_on:
       namenode:
         condition: service_healthy
+      zookeeper:
+        condition: service_healthy
+      hbase-master:
+        condition: service_started
     networks:
       - hadoop-network
       
@@ -174,16 +178,40 @@ services:
     image: harisekhon/hbase
     container_name: hbase-master
     hostname: hbase-master
+    volumes:
+      # Use /hbase/conf as the single HBase configuration directory used by the image.
+      # Let the image manage hbase-site.xml internally to avoid sed -i on a bind mount.
+      - ./config/hbase-env.sh:/hbase/conf/hbase-env.sh:ro
+      - ./config/hadoop/core-site.xml:/hbase/conf/core-site.xml:ro
+      - ./config/hadoop/hdfs-site.xml:/hbase/conf/hdfs-site.xml:ro
     environment:
       HBASE_MODE: master
       HBASE_MASTER_HOST: hbase-master
       HBASE_ZOOKEEPER_QUORUM: zookeeper
       ZK_QUORUM: zookeeper
+      HBASE_MANAGES_ZK: "false"
+      # Align with the image defaults and our volume mounts
+      HADOOP_CONF_DIR: /hbase/conf
+      HBASE_CONF_DIR: /hbase/conf
+      HBASE_ROOT_DIR: "hdfs://namenode:8020/hbase"
+      # Correct Java path inside harisekhon/hbase image
+      JAVA_HOME: /usr
+      # Additional HBase configuration via environment
+      HBASE_CLUSTER_DISTRIBUTED: "true"
+      HBASE_ZOOKEEPER_PROPERTY_CLIENTPORT: "2181"
+      ZOOKEEPER_ZNODE_PARENT: "/hbase"
     ports:
       - "16010:16010"
       - "16000:16000"
     depends_on:
-      - zookeeper
+      zookeeper:
+        condition: service_healthy
+      namenode:
+        condition: service_healthy
+      datanode:
+        condition: service_healthy
+      hdfs-init:
+        condition: service_completed_successfully
     networks:
       - hadoop-network
 
@@ -191,16 +219,37 @@ services:
     image: harisekhon/hbase
     container_name: hbase-regionserver
     hostname: hbase-regionserver
+    volumes:
+      # Use the same single configuration directory as the master, but let the image manage hbase-site.xml.
+      - ./config/hbase-env.sh:/hbase/conf/hbase-env.sh:ro
+      - ./config/hadoop/core-site.xml:/hbase/conf/core-site.xml:ro
+      - ./config/hadoop/hdfs-site.xml:/hbase/conf/hdfs-site.xml:ro
     environment:
       HBASE_MODE: regionserver
       HBASE_MASTER_HOST: hbase-master
       HBASE_ZOOKEEPER_QUORUM: zookeeper
       ZK_QUORUM: zookeeper
+      HBASE_MANAGES_ZK: "false"
+      HADOOP_CONF_DIR: /hbase/conf
+      HBASE_CONF_DIR: /hbase/conf
+      HBASE_ROOT_DIR: "hdfs://namenode:8020/hbase"
+      JAVA_HOME: /usr
+      # Additional HBase configuration via environment
+      HBASE_CLUSTER_DISTRIBUTED: "true"
+      HBASE_ZOOKEEPER_PROPERTY_CLIENTPORT: "2181"
+      ZOOKEEPER_ZNODE_PARENT: "/hbase"
     ports:
       - "16030:16030"
       - "16020:16020"
     depends_on:
-      - hbase-master
+      hbase-master:
+        condition: service_started
+      namenode:
+        condition: service_healthy
+      datanode:
+        condition: service_healthy
+      hdfs-init:
+        condition: service_completed_successfully
     networks:
       - hadoop-network
 
