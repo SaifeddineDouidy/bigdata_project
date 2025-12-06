@@ -129,9 +129,17 @@ print(f"✓ Table Hive créée: {HIVE_DATABASE}.{HIVE_TABLE_COMPARISON}")
 # ============================================================
 print("\n4. Export CSV...")
 
-# Convertir en pandas pour export CSV (si petit dataset)
-comparison_pd = df_comparison.toPandas()
-comparison_pd.to_csv(COMPARISON_CSV, index=False)
+import csv
+
+# Convertir en liste de lignes pour export CSV (petit dataset)
+rows = df_comparison.collect()
+headers = df_comparison.columns
+
+with open(COMPARISON_CSV, 'w', newline='') as f:
+    writer = csv.writer(f)
+    writer.writerow(headers)
+    for row in rows:
+        writer.writerow(row)
 
 print(f"✓ CSV exporté: {COMPARISON_CSV}")
 

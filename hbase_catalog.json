@@ -1,0 +1,29 @@
+{
+  "table": {
+    "namespace": "default",
+    "name": "sales"
+  },
+  "rowkey": "id",
+  "columns": {
+    "id": {
+      "cf": "rowkey",
+      "col": "id",
+      "type": "string"
+    },
+    "product": {
+      "cf": "cf",
+      "col": "product",
+      "type": "string"
+    },
+    "amount": {
+      "cf": "cf",
+      "col": "amount",
+      "type": "string"
+    },
+    "date": {
+      "cf": "cf",
+      "col": "date",
+      "type": "string"
+    }
+  }
+}

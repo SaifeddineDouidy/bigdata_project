@@ -6,9 +6,9 @@ Toutes les variables importantes sont définies ici
 # ============================================================
 # CHEMINS HDFS
 # ============================================================
-CSV_HDFS_PATH = "hdfs://namenode:8020/user/data/sample_sales.csv"
-PARQUET_HDFS_DIR = "hdfs://namenode:8020/user/output/parquet_sample"
-PARQUET_HDFS_DIR_ALT = "hdfs://namenode:8020/user/hive/warehouse/sales_parquet"
+CSV_HDFS_PATH = "hdfs://namenode:8020/user/data/large_sales.csv"
+PARQUET_HDFS_DIR = "hdfs://namenode:8020/user/output/parquet_large"
+PARQUET_HDFS_DIR_ALT = "hdfs://namenode:8020/user/hive/warehouse/large_sales_parquet"
 
 # ============================================================
 # CONFIGURATION HBASE
@@ -41,9 +41,9 @@ HBASE_CATALOG = {
 # CONFIGURATION SPARK
 # ============================================================
 SPARK_MASTER = "spark://spark-master-new:7077"
-SPARK_APP_NAME_HBASE = "benchmark_hbase"
-SPARK_APP_NAME_PARQUET = "benchmark_parquet"
-SPARK_APP_NAME_COMPARISON = "benchmark_comparison"
+SPARK_APP_NAME_HBASE = "large_sales_benchmark_hbase"
+SPARK_APP_NAME_PARQUET = "large_sales_benchmark_parquet"
+SPARK_APP_NAME_COMPARISON = "large_sales_benchmark_comparison"
 
 # Packages Spark nécessaires
 SPARK_PACKAGES = [
@@ -56,9 +56,9 @@ SPARK_PACKAGES = [
 # CONFIGURATION HIVE
 # ============================================================
 HIVE_DATABASE = "perf"
-HIVE_TABLE_HBASE_METRICS = "hbase_metrics"
-HIVE_TABLE_PARQUET_METRICS = "parquet_metrics"
-HIVE_TABLE_COMPARISON = "comparison_results"
+HIVE_TABLE_HBASE_METRICS = "large_sales_hbase_metrics"
+HIVE_TABLE_PARQUET_METRICS = "large_sales_parquet_metrics"
+HIVE_TABLE_COMPARISON = "large_sales_comparison_results"
 
 HIVE_METASTORE_URI = "thrift://hive-metastore:9083"
 HIVE_WAREHOUSE_DIR = "hdfs://namenode:8020/user/hive/warehouse"
@@ -87,7 +87,7 @@ SQL_QUERIES = {
 # ============================================================
 # FICHIERS DE SORTIE
 # ============================================================
-OUTPUT_DIR = "/tmp/benchmark_results"
-COMPARISON_CSV = f"{OUTPUT_DIR}/comparison_results.csv"
-COMPARISON_REPORT = f"{OUTPUT_DIR}/benchmark_report.md"
+OUTPUT_DIR = "/tmp/large_sales_benchmark_results"
+COMPARISON_CSV = f"{OUTPUT_DIR}/large_sales_comparison_results.csv"
+COMPARISON_REPORT = f"{OUTPUT_DIR}/large_sales_benchmark_report.md"
 

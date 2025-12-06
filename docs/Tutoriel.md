@@ -94,13 +94,23 @@ Les scripts ont été organisés dans le dossier `benchmarks/` :
 
 -   `read_csv_hive.py` : Script utilitaire pour vérifier la lecture CSV via Hive.
 
-### 3. Résultats et Interprétation
-Les résultats sont stockés dans `benchmark_results/`.
+### 3. Résultats et Interprétation (Petit Jeu de Données)
+Les résultats ci-dessous ont été obtenus sur un petit jeu de données (`sample_sales.csv`, 5 lignes).
 
-**Observations Générales :**
--   **Écriture** : Parquet est généralement plus rapide car il s'agit d'une écriture séquentielle de fichiers, tandis que HBase doit gérer les WAL et la distribution des régions.
--   **Lecture Analytique (Group By, Count)** : Parquet surpasse largement HBase sur les gros volumes grâce au format colonnaire.
--   **Accès Unitaire** : HBase est imbattable pour récupérer une ligne spécifique par sa clé (RowKey), ce que Parquet ne peut faire qu'en scannant le fichier (ou via des index partitionnés).
+| Opération | HBase (ms) | Parquet (ms) | Différence (%) |
+| :--- | :--- | :--- | :--- |
+| **Écriture** | 4559 | 1973 | +131% (Parquet plus rapide) |
+| **Lecture (Scan)** | 217 | - | - |
+| **SQL Count** | 308 | 516 | -40% (HBase plus rapide) |
+| **SQL Filter** | 702 | 971 | -27% (HBase plus rapide) |
+| **SQL GroupBy** | 7099 | 9430 | -24% (HBase plus rapide) |
+| **SQL Select All** | 662 | 792 | -16% (HBase plus rapide) |
+
+**Interprétation Préliminaire :**
+Sur ce très petit volume de données, les résultats sont contre-intuitifs par rapport à la théorie Big Data :
+1.  **Écriture** : Parquet est nettement plus rapide. L'écriture dans HBase implique des coûts fixes (connexion Zookeeper, gestion des WAL) qui sont lourds pour seulement 5 lignes.
+2.  **Lecture SQL** : HBase semble plus performant ici. Cela s'explique probablement par le fait que Spark doit initialiser le lecteur Parquet et inferer le schéma, ce qui prend un temps constant incompressible. Pour HBase, une fois la connexion établie, récupérer 5 clés est instantané.
+3.  **Conclusion** : Ces résultats mesurent surtout les "coûts d'initialisation" (overhead) des deux systèmes. Pour observer les vrais gains de performance de Parquet (compression, scan colonnaire) et de HBase (accès aléatoire), il est nécessaire de passer à un jeu de données plus volumineux (plusieurs millions de lignes).
 
 ### 4. Comment Exécuter le Benchmark
 Un script maître `scripts/run_full_benchmark.sh` orchestre tout le processus :
@@ -181,9 +191,41 @@ spark.read.format("avro").load("/user/data/sales_avro").count()
 print(f"Lecture Avro (Count): {time.time() - start}s")
 ```
 
-### 3. Résultats Attendus
+### 3. Résultats du Benchmark (Dataset 1M lignes)
 
--   **Vitesse d'écriture** : Avro > Parquet ≈ ORC (Avro est optimisé pour l'écriture ligne par ligne).
--   **Vitesse de lecture (Scan complet)** : Parquet ≈ ORC > Avro.
--   **Vitesse de lecture (Quelques colonnes)** : Parquet/ORC >>> Avro (grâce au format colonnaire).
--   **Taille de stockage** : ORC ≈ Parquet < Avro < CSV.
+Voici les résultats obtenus sur un dataset de 1 million de lignes (généré aléatoirement) :
+
+| Format | Taille (MB) | Temps Écriture (s) | Temps Lecture (Count) (s) |
+|--------|-------------|--------------------|---------------------------|
+| **CSV** | 31.13 | 9.37 | ~1 |
+| **Avro** | 14.70 | 9.80 | ~4 |
+| **Parquet** | 10.19 | 14.74 | ~2 |
+| **ORC** | 7.03 | 6.90 | ~9 |
+
+*(Note : Les temps de lecture sont arrondis)*
+
+### 4. Interprétation et Choix du Format
+
+#### 📊 Analyse des Résultats
+1.  **Stockage (Compression)** :
+    -   **ORC** et **Parquet** sont les grands gagnants, réduisant la taille de **~65-75%** par rapport au CSV.
+    -   **Avro** offre une compression intermédiaire (~50%).
+    -   **CSV** est le plus volumineux.
+
+2.  **Performance d'Écriture** :
+    -   **ORC** a été le plus rapide dans ce test, suivi de près par le **CSV** (qui n'a aucun surcoût d'encodage).
+    -   **Parquet** est le plus lent à écrire (+50% de temps vs CSV), ce qui est normal car il effectue un encodage complexe (Dremel) et une compression lourde pour optimiser les lectures futures.
+
+3.  **Performance de Lecture** :
+    -   **Parquet** est très performant pour la lecture.
+    -   **CSV** est rapide pour un simple comptage séquentiel, mais deviendrait très lent pour des requêtes complexes (filtrage, agrégation) car il faut parser chaque ligne textuelle.
+
+#### 💡 Quand utiliser quoi ?
+
+-   **Utilisez Parquet** pour les **Data Lakes** et l'analyse (BI, Data Science). C'est le standard pour la lecture rapide de gros volumes (OLAP). Le surcoût à l'écriture est largement rentabilisé par les gains en lecture et stockage.
+
+-   **Utilisez Avro** pour l'**ingestion de données** (Streaming, Kafka) et les pipelines d'écriture intensive (OLTP). Il gère très bien l'évolution des schémas (ajout de colonnes).
+
+-   **Utilisez ORC** si vous travaillez exclusivement dans l'écosystème **Hive**. Il est ultra-optimisé pour Hive et supporte les transactions ACID.
+
+-   **Utilisez CSV** uniquement pour l'**échange de données** avec des systèmes externes ou pour le débogage humain. À bannir pour le stockage long terme ou le traitement Big Data.
