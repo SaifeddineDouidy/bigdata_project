@@ -288,3 +288,31 @@ split_strategy, label_quantile, label_threshold_amount
 
 params_json (hyperparamètres du modèle)
 
+## fichier csv recuperer Ml
+### Depuis la racine du projet sur ta machine
+docker cp spark-master-new:/spark_ml/output_ml_results ./ml_results_csv
+
+
+```bash
+MSYS_NO_PATHCONV=1 docker exec -it namenode bash
+ 
+
+hdfs dfs -ls /spark_ml/output_ml_results
+
+```
+Toujours dans le conteneur namenode :
+```bash
+
+mkdir -p /tmp/output_ml_results
+
+hdfs dfs -get /spark_ml/output_ml_results/* /tmp/output_ml_results/
+exit
+```
+
+new bash 
+```bash
+cd C:\bigdata_project   
+
+docker cp namenode:/tmp/output_ml_results ./ml_results_csv
+```
+
