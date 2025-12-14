@@ -17,13 +17,13 @@ services:
       - ./config/hadoop-hive.env
     ports:
       - "9870:9870"
-      - "8020:8020"
+      - "9000:8020"
     healthcheck:
-      test: [ "CMD", "curl", "-fsS", "http://localhost:9870/" ]
-      interval: 10s
-      timeout: 5s
-      retries: 12
-      start_period: 10s
+      test: [ "CMD", "curl", "-fsS", "http://localhost:9870/dfshealth.html" ]
+      interval: 30s
+      timeout: 10s
+      retries: 20
+      start_period: 90s
     networks:
       - hadoop-network
 
@@ -106,11 +106,11 @@ services:
     command: [ "bash", "/opt/hive-startup.sh" ]
     depends_on:
       hive-metastore-postgresql:
-        condition: service_healthy
+        condition: service_started
       namenode:
-        condition: service_healthy
+        condition: service_started
       datanode:
-        condition: service_healthy
+        condition: service_started
     environment:
       SERVICE_PRECONDITION: "namenode:9870 datanode:9864 hive-metastore-postgresql:5432"
       HIVE_CORE_CONF_javax_jdo_option_ConnectionURL: "jdbc:postgresql://hive-metastore-postgresql:5432/metastore"
@@ -155,9 +155,9 @@ services:
       - ./config/hadoop-hive.env
     depends_on:
       namenode:
-        condition: service_healthy
+        condition: service_started
       zookeeper:
-        condition: service_healthy
+        condition: service_started
       hbase-master:
         condition: service_started
     networks:
@@ -207,17 +207,17 @@ services:
       # Additional HBase configuration via environment
       HBASE_CLUSTER_DISTRIBUTED: "true"
       HBASE_ZOOKEEPER_PROPERTY_CLIENTPORT: "2181"
-      ZOOKEEPER_ZNODE_PARENT: "/hbase"
+      ZOOKEEPER_ZNODE_PARENT: "/hbase-unsecure"
     ports:
       - "16010:16010"
       - "16000:16000"
     depends_on:
       zookeeper:
-        condition: service_healthy
+        condition: service_started
       namenode:
-        condition: service_healthy
+        condition: service_started
       datanode:
-        condition: service_healthy
+        condition: service_started
       hdfs-init:
         condition: service_completed_successfully
     networks:
@@ -245,7 +245,7 @@ services:
       # Additional HBase configuration via environment
       HBASE_CLUSTER_DISTRIBUTED: "true"
       HBASE_ZOOKEEPER_PROPERTY_CLIENTPORT: "2181"
-      ZOOKEEPER_ZNODE_PARENT: "/hbase"
+      ZOOKEEPER_ZNODE_PARENT: "/hbase-unsecure"
     ports:
       - "16030:16030"
       - "16020:16020"
@@ -253,9 +253,9 @@ services:
       hbase-master:
         condition: service_started
       namenode:
-        condition: service_healthy
+        condition: service_started
       datanode:
-        condition: service_healthy
+        condition: service_started
       hdfs-init:
         condition: service_completed_successfully
     networks:
@@ -271,9 +271,9 @@ services:
     entrypoint: [ "/bin/bash", "-c", "/hdfs-init.sh" ]
     depends_on:
       namenode:
-        condition: service_healthy
+        condition: service_started
       datanode:
-        condition: service_healthy
+        condition: service_started
     restart: "no"
     networks:
       - hadoop-network
