@@ -1,0 +1,1165 @@
+\documentclass[12pt,a4paper]{article}
+
+% Packages essentiels
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{geometry}
+\usepackage{forest}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{float}
+\usepackage{listings}
+\usepackage{tikz}
+\usepackage{tcolorbox}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{enumitem}
+
+% Configuration de la page
+\geometry{
+    left=2.5cm,
+    right=2.5cm,
+    top=3cm,
+    bottom=3cm
+}
+
+% Configuration des en-têtes
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\leftmark}
+\fancyhead[R]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% Couleurs personnalisées
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+\definecolor{primaryblue}{rgb}{0.12,0.45,0.68}
+
+% Configuration de listings
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{primaryblue}\bfseries,
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,
+    breaklines=true,
+    captionpos=b,
+    keepspaces=true,
+    numbers=left,
+    numbersep=5pt,
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    tabsize=2,
+    frame=single,
+    rulecolor=\color{black!30}
+}
+\lstset{style=mystyle}
+
+% Boîtes colorées pour les notes
+\newtcolorbox{infobox}[1][]{
+    colback=blue!5!white,
+    colframe=primaryblue,
+    fonttitle=\bfseries,
+    title=#1,
+    arc=2mm
+}
+
+\newtcolorbox{warningbox}[1][]{
+    colback=orange!5!white,
+    colframe=orange!80!black,
+    fonttitle=\bfseries,
+    title=#1,
+    arc=2mm
+}
+
+% Configuration des titres
+\titleformat{\section}
+{\color{primaryblue}\normalfont\Large\bfseries}
+{\thesection}{1em}{}
+
+\titleformat{\subsection}
+{\color{primaryblue}\normalfont\large\bfseries}
+{\thesubsection}{1em}{}
+
+% Hyperlinks
+\hypersetup{
+    colorlinks=true,
+    linkcolor=primaryblue,
+    filecolor=magenta,
+    urlcolor=cyan,
+    pdftitle={Tutoriel Big Data},
+    pdfpagemode=FullScreen,
+}
+
+% Informations du document
+\title{
+    \vspace{-2cm}
+    \Huge\textbf{Projet Big Data}\\
+    \vspace{0.5cm}
+    \Large Tutoriel Complet : Benchmark des Formats de Données\\
+    \large Comparaison Avro, ORC, Parquet avec Hive, Spark et HBase
+}
+\author{
+    Projet Big Data\\
+    ENSA El Jadida\\
+    \texttt{2024-2025}
+}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\thispagestyle{empty}
+
+\begin{abstract}
+\noindent Ce document présente un tutoriel détaillé pour la mise en place et l'exécution d'un projet Big Data comparant différents formats de stockage (CSV, Avro, ORC, Parquet) et systèmes (Parquet vs HBase). Le projet utilise une infrastructure Docker complète incluant HDFS, Hive, Spark, HBase et Zookeeper. Ce guide pas-à-pas est conçu pour être exécuté sous Windows PowerShell et contient toutes les commandes nécessaires pour reproduire l'ensemble des benchmarks et analyses.
+\end{abstract}
+
+\vspace{1cm}
+\tableofcontents
+\newpage
+
+% ============================================
+% CHAPITRE 1 : ARCHITECTURE DU SYSTÈME
+% ============================================
+
+\section{Architecture du système Big Data}
+
+\subsection{Vue d'ensemble de l'infrastructure}
+
+L'infrastructure déployée dans ce projet repose sur une architecture distribuée moderne, utilisant des conteneurs Docker pour assurer la portabilité et la reproductibilité. Cette approche permet de simuler un environnement Big Data complet sur une seule machine, tout en respectant les principes d'architecture des systèmes distribués réels.
+
+
+\subsection{Composants de l'architecture}
+
+L'infrastructure repose sur les composants suivants, chacun jouant un rôle spécifique dans l'écosystème Big Data :
+
+\subsubsection{Couche de stockage distribué}
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{HDFS (Hadoop Distributed File System)} : Système de fichiers distribué constituant la base du stockage
+    \begin{itemize}
+        \item \textbf{NameNode} (port 9870) : Gestionnaire des métadonnées et du namespace HDFS
+        \item \textbf{DataNode} (port 9864) : Nœud de stockage effectif des blocs de données
+    \end{itemize}
+    \item \textbf{HBase} : Base de données NoSQL orientée colonnes pour les accès aléatoires rapides
+    \begin{itemize}
+        \item \textbf{HBase Master} (port 16010) : Coordination et gestion des RegionServers
+        \item \textbf{RegionServer} (port 16030) : Serveur de données HBase
+    \end{itemize}
+\end{itemize}
+
+\subsubsection{Couche de traitement}
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Apache Spark} : Moteur de calcul distribué en mémoire
+    \begin{itemize}
+        \item \textbf{Spark Master} (ports 8080, 7077) : Orchestration du cluster
+        \item \textbf{Spark Worker} (port 8081) : Exécuteur de tâches
+    \end{itemize}
+    \item \textbf{Spark SQL} : Module pour requêtes SQL distribuées
+    \item \textbf{Spark MLlib} : Bibliothèque de Machine Learning
+\end{itemize}
+
+\subsubsection{Couche de métadonnées et coordination}
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Apache Hive} : Data warehouse avec interface SQL
+    \begin{itemize}
+        \item \textbf{Hive Metastore} (port 9083) : Catalogue des schémas et tables
+        \item \textbf{PostgreSQL} (port 5432) : Base relationnelle pour le metastore
+    \end{itemize}
+    \item \textbf{Apache Zookeeper} (port 2181) : Service de coordination pour HBase
+\end{itemize}
+
+\subsection{Formats de données étudiés}
+
+Le projet compare quatre formats de stockage Big Data, chacun ayant des caractéristiques distinctes :
+
+\begin{center}
+\begin{tabular}{|l|p{10cm}|}
+\hline
+\textbf{Format} & \textbf{Caractéristiques principales} \\
+\hline
+\textbf{CSV} & Format texte brut, lisible humainement, sans compression native, adapté aux petits volumes et à l'interopérabilité \\
+\hline
+\textbf{Avro} & Format binaire orienté lignes avec schéma embarqué, compression intégrée, optimal pour les flux de données streaming \\
+\hline
+\textbf{ORC} & Format orienté colonnes optimisé pour Hive, compression agressive, index intégrés, excellent pour les requêtes analytiques \\
+\hline
+\textbf{Parquet} & Format orienté colonnes universel, compression efficace, prédiction de schéma, idéal pour Spark et l'écosystème Hadoop \\
+\hline
+\end{tabular}
+\end{center}
+
+\subsection{Diagramme d'architecture}
+
+La figure ci-dessous illustre l'interaction entre les différents composants :
+
+\begin{center}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{architecture.png}
+    \caption{Architecture Global}
+    \label{fig:archi-glob}
+\end{figure}
+\end{center}
+
+\begin{warningbox}[Prérequis système]
+\begin{itemize}[nosep]
+    \item Docker Desktop installé et fonctionnel (version 20.10+)
+    \item Git for Windows avec Git Bash
+    \item Python 3.7+ avec pip
+    \item Minimum 8 GB RAM disponible
+    \item 20 GB d'espace disque libre
+    \item Ports réseau : 8020, 8080, 8081, 9083, 9870, 16010 disponibles
+\end{itemize}
+\end{warningbox}
+
+\newpage
+
+% ============================================
+% CHAPITRE 2 : INSTALLATION ET CONFIGURATION
+% ============================================
+
+\section{Installation et configuration de l'infrastructure}
+
+\subsection{Récupération du projet}
+
+Clonez le dépôt Git et positionnez-vous dans le répertoire du projet :
+
+\begin{lstlisting}[language=bash, caption={Clonage du projet}]
+git clone https://github.com/SaifeddineDouidy/bigdata_project
+cd bigdata_project
+\end{lstlisting}
+
+\subsection{Structure du projet}
+Le projet est organisé comme suit :
+\begin{lstlisting}[language=bash, caption={Arborescence du projet}]
+bigdata_project/
+├── docker-compose.yml         # Configuration des services
+├── benchmarks/                # Scripts de benchmark
+│   ├── benchmark_formats.py
+│   ├── benchmark_hbase.py
+│   ├── benchmark_parquet_complete.py
+│   └── generate_comparison.py
+├── spark_ml/                  # Scripts Machine Learning
+│   └── ml_benchmark.py
+├── scripts/                   # Scripts d'automatisation
+│   ├── generate_data.py
+│   ├── verify_services.sh
+│   └── run_*.sh
+└── data/                      # Donnees generees
+\end{lstlisting}
+
+
+\subsection{Démarrage de l'infrastructure}
+
+Lancez tous les services Docker en arrière-plan :
+
+\begin{lstlisting}[language=powershell, caption={Démarrage des services Docker}]
+# Demarrage de tous les conteneurs
+docker-compose up -d
+
+# Verification de l'etat des services
+docker-compose ps
+\end{lstlisting}
+
+Vérifiez que tous les conteneurs sont opérationnels :
+
+\begin{lstlisting}[language=powershell, caption={Verification des conteneurs actifs}]
+docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+\end{lstlisting}
+
+\begin{infobox}[Services attendus]
+Les services suivants doivent être en état \texttt{Up} :
+\begin{itemize}[nosep]
+    \item \textbf{namenode} (9870) : Interface Web HDFS
+    \item \textbf{datanode} (9864) : Nœud de données HDFS
+    \item \textbf{spark-master-new} (8080, 7077) : Maître Spark
+    \item \textbf{spark-worker} (8081) : Worker Spark
+    \item \textbf{hbase-master} (16010) : Maître HBase
+    \item \textbf{hive-metastore} (9083) : Metastore Hive
+    \item \textbf{zookeeper} (2181) : Coordinateur distribué
+\end{itemize}
+\end{infobox}
+
+\newpage
+
+% ============================================
+% CHAPITRE 3 : VÉRIFICATION DES SERVICES
+% ============================================
+
+\section{Vérification et validation des services}
+
+Avant de commencer les benchmarks, il est crucial de vérifier que tous les services fonctionnent correctement.
+
+\subsection{Vérification HDFS}
+
+Testez la connectivité avec HDFS et examinez son état :
+
+\begin{lstlisting}[language=powershell, caption={Test HDFS}]
+# Rapport detaille du cluster HDFS
+docker exec namenode hdfs dfsadmin -report
+
+# Lister le contenu racine
+docker exec namenode hdfs dfs -ls /
+\end{lstlisting}
+
+\subsection{Vérification Hive Metastore}
+
+Vérifiez que le metastore Hive est accessible :
+
+\begin{lstlisting}[language=powershell, caption={Test Hive Metastore}]
+docker exec hive-metastore nc -zv hive-metastore 9083
+\end{lstlisting}
+
+\subsection{Vérification HBase}
+
+Testez HBase avec le shell interactif :
+
+\begin{lstlisting}[language=powershell, caption={Test HBase - Option interactive}]
+docker exec -it hbase-master hbase shell
+\end{lstlisting}
+
+Dans le shell HBase, exécutez :
+
+\begin{lstlisting}[language=bash, caption={Commandes HBase shell}]
+status
+list
+exit
+\end{lstlisting}
+
+Ou en mode non-interactif :
+
+\begin{lstlisting}[language=powershell, caption={Test HBase - Mode automatique}]
+docker exec hbase-master /bin/sh -lc "echo 'status' | /hbase/bin/hbase shell"
+docker exec hbase-master /bin/sh -lc "echo 'list' | /hbase/bin/hbase shell"
+\end{lstlisting}
+
+\subsection{Vérification Spark}
+
+Vérifiez l'interface Web de Spark :
+
+\begin{lstlisting}[language=powershell, caption={Test Spark Master}]
+docker exec spark-master-new curl -s http://localhost:8080 | Select-Object -First 20
+\end{lstlisting}
+
+\begin{infobox}[Interfaces Web disponibles]
+Une fois les services démarrés, vous pouvez accéder aux interfaces suivantes :
+\begin{itemize}[nosep]
+    \item HDFS NameNode : \url{http://localhost:9870}
+    \item Spark Master : \url{http://localhost:8080}
+    \item Spark Worker : \url{http://localhost:8081}
+    \item HBase Master : \url{http://localhost:16010}
+\end{itemize}
+\end{infobox}
+
+\newpage
+
+% ============================================
+% CHAPITRE 4 : GÉNÉRATION ET UPLOAD DES DONNÉES
+% ============================================
+
+\section{Génération et chargement des données dans HDFS}
+
+\subsection{Préparation de HDFS}
+
+Créez la structure de répertoires nécessaire sur HDFS :
+
+\begin{lstlisting}[language=powershell, caption={Création des répertoires HDFS}]
+docker exec namenode hdfs dfs -mkdir -p /user/data
+docker exec namenode hdfs dfs -mkdir -p /user/output
+docker exec namenode hdfs dfs -mkdir -p /user/hive/warehouse
+docker exec namenode hdfs dfs -chmod -R 777 /user
+\end{lstlisting}
+
+\subsection{Génération d'un petit dataset de test}
+
+Créez un fichier CSV d'exemple avec PowerShell :
+
+\begin{lstlisting}[language=powershell, caption={Création de sample\_sales.csv}]
+@'
+id,product,amount,date
+1,Laptop,999.99,2023-01-15
+2,Mouse,29.99,2023-02-20
+3,Keyboard,79.99,2023-03-10
+4,Monitor,299.99,2023-04-05
+5,Headphones,149.99,2023-05-12
+'@ | Set-Content -Encoding UTF8 .\data\sample_sales.csv
+
+Write-Host "Fichier sample_sales.csv cree avec succes"
+\end{lstlisting}
+
+\subsection{Génération d'un grand dataset}
+
+Utilisez le script Python pour générer un million de lignes :
+
+\begin{lstlisting}[language=powershell, caption={Génération du grand dataset}]
+python .\scripts\generate_data.py .\data\large_sales.csv 1000000
+\end{lstlisting}
+
+Vérifiez la taille du fichier généré :
+
+\begin{lstlisting}[language=powershell, caption={Vérification du fichier généré}]
+Get-Item .\data\large_sales.csv | Select-Object Name, Length
+\end{lstlisting}
+
+\subsection{Upload sur HDFS}
+
+\subsubsection{Upload du petit dataset}
+
+\begin{lstlisting}[language=powershell, caption={Upload de sample\_sales.csv}]
+# Copie vers le conteneur
+docker cp .\data\sample_sales.csv namenode:/tmp/sample_sales.csv
+
+# Upload vers HDFS
+docker exec namenode hdfs dfs -put -f /tmp/sample_sales.csv /user/data/
+
+# Verification
+docker exec namenode hdfs dfs -ls /user/data/
+docker exec namenode hdfs dfs -cat /user/data/sample_sales.csv | Select-Object -First 10
+\end{lstlisting}
+
+\subsubsection{Upload du grand dataset}
+
+\begin{lstlisting}[language=powershell, caption={Upload de large\_sales.csv}]
+# Copie vers le conteneur
+docker cp .\data\large_sales.csv namenode:/tmp/large_sales.csv
+
+# Upload vers HDFS
+docker exec namenode hdfs dfs -put -f /tmp/large_sales.csv /user/data/
+
+# Verification de la taille
+docker exec namenode hdfs dfs -du -h /user/data/
+\end{lstlisting}
+
+\begin{warningbox}[Note importante]
+L'upload du grand dataset peut prendre plusieurs minutes selon votre configuration système. Assurez-vous d'avoir suffisamment d'espace disque disponible sur le conteneur Docker.
+\end{warningbox}
+
+\newpage
+
+% ============================================
+% CHAPITRE 5 : BENCHMARK DES FORMATS
+% ============================================
+
+\section{Benchmark comparatif des formats de stockage}
+
+\subsection{Objectif du benchmark}
+
+Ce benchmark compare quatre formats de données :
+\begin{itemize}[leftmargin=*]
+    \item \textbf{CSV} : Format texte simple, lisible mais peu performant
+    \item \textbf{Avro} : Format binaire orienté lignes avec schéma
+    \item \textbf{ORC} : Format optimisé pour Hive, orienté colonnes
+    \item \textbf{Parquet} : Format orienté colonnes, optimisé pour Spark
+\end{itemize}
+
+Pour chaque format, on mesure :
+\begin{itemize}[nosep]
+    \item Temps d'écriture
+    \item Temps de lecture
+    \item Taille sur disque
+    \item Compression obtenue
+\end{itemize}
+
+\subsection{Préparation du benchmark}
+
+Copiez le script de benchmark dans le conteneur Spark :
+
+\begin{lstlisting}[language=powershell, caption={Copie du script de benchmark}]
+docker cp .\benchmarks\benchmark_formats.py spark-master-new:/benchmark_formats.py
+\end{lstlisting}
+
+\subsection{Exécution sur le petit dataset}
+
+Lancez le benchmark avec le petit jeu de données :
+
+\begin{lstlisting}[language=powershell, caption={Benchmark petit dataset}]
+docker exec spark-master-new /spark/bin/spark-submit `
+  --master spark://spark-master-new:7077 `
+  --packages org.apache.spark:spark-avro_2.12:3.1.1 `
+  /benchmark_formats.py `
+  --input-file "hdfs://namenode:8020/user/data/sample_sales.csv" `
+  --dataset-name "small"
+\end{lstlisting}
+
+\subsection{Exécution sur le grand dataset}
+
+Pour le grand dataset, augmentez la mémoire allouée :
+
+\begin{lstlisting}[language=powershell, caption={Benchmark grand dataset}]
+docker exec spark-master-new /spark/bin/spark-submit `
+  --master spark://spark-master-new:7077 `
+  --packages org.apache.spark:spark-avro_2.12:3.1.1 `
+  --conf spark.driver.memory=2g `
+  --conf spark.executor.memory=2g `
+  /benchmark_formats.py `
+  --input-file "hdfs://namenode:8020/user/data/large_sales.csv" `
+  --dataset-name "huge"
+\end{lstlisting}
+
+\subsection{Consultation des résultats}
+
+Les résultats sont stockés dans une table Hive. Consultez-les avec :
+
+\begin{lstlisting}[language=powershell, caption={Consultation des résultats du benchmark}]
+docker exec spark-master-new /spark/bin/spark-sql -e "
+SELECT 
+    dataset,
+    format,
+    rows,
+    ROUND(write_time_s, 2) AS write_s,
+    ROUND(read_time_s, 2) AS read_s,
+    ROUND(size_mb, 2) AS size_mb
+FROM perf.format_benchmark_results
+ORDER BY dataset, write_time_s;"
+\end{lstlisting}
+
+\begin{infobox}[Interprétation des résultats]
+Généralement, vous observerez :
+\begin{itemize}[nosep]
+    \item \textbf{CSV} : Lecture/écriture rapide, taille importante
+    \item \textbf{Avro} : Bonne compression, orienté lignes
+    \item \textbf{ORC et Parquet} : Excellente compression, lecture rapide pour les requêtes analytiques
+\end{itemize}
+\end{infobox}
+
+\newpage
+
+% ============================================
+% CHAPITRE 6 : SPARK SQL ET HIVE
+% ============================================
+
+\section{Intégration Spark SQL et Apache Hive}
+
+\subsection{Objectif}
+
+Cette section montre comment lire des données CSV avec Spark, les transformer en format Parquet, et les rendre disponibles via Hive pour des requêtes SQL.
+
+\subsection{Préparation du script}
+
+Copiez le script de lecture CSV :
+
+\begin{lstlisting}[language=powershell, caption={Copie du script read\_csv\_hive.py}]
+docker cp .\benchmarks\read_csv_hive.py spark-master-new:/read_csv_hive.py
+\end{lstlisting}
+
+\subsection{Exécution du script}
+
+Lancez la conversion CSV vers Parquet et la création de la table Hive :
+
+\begin{lstlisting}[language=powershell, caption={Conversion CSV vers Parquet}]
+docker exec spark-master-new /spark/bin/spark-submit `
+  --master spark://spark-master-new:7077 `
+  /read_csv_hive.py
+\end{lstlisting}
+
+\subsection{Requêtes SQL interactives}
+
+Accédez au shell Spark SQL pour interroger les données :
+
+\begin{lstlisting}[language=powershell, caption={Lancement de Spark SQL}]
+docker exec -it spark-master-new /spark/bin/spark-sql
+\end{lstlisting}
+
+Dans le shell, exécutez des requêtes SQL :
+
+\begin{lstlisting}[language=sql, caption={Requêtes SQL d'exemple}]
+-- Utiliser la base de donnees perf
+USE perf;
+
+-- Afficher les tables disponibles
+SHOW TABLES;
+
+-- Afficher un echantillon de donnees
+SELECT * FROM sales_parquet LIMIT 10;
+
+-- Aggregation par produit
+SELECT 
+    product, 
+    COUNT(*) AS nb_ventes,
+    SUM(amount) AS total_ventes,
+    AVG(amount) AS montant_moyen
+FROM sales_parquet
+GROUP BY product
+ORDER BY total_ventes DESC;
+
+-- Quitter
+EXIT;
+\end{lstlisting}
+
+\subsection{Utilisation de PySpark}
+
+Pour une approche plus programmatique, utilisez PySpark :
+
+\begin{lstlisting}[language=powershell, caption={Lancement de PySpark}]
+docker exec -it spark-master-new /spark/bin/pyspark --master spark://spark-master-new:7077
+\end{lstlisting}
+
+\begin{lstlisting}[language=python, caption={Code PySpark pour lecture et écriture}]
+# Lecture du fichier CSV
+df = spark.read.csv(
+    "hdfs://namenode:8020/user/data/large_sales.csv",
+    header=True, 
+    inferSchema=True
+)
+
+# Affichage d'un echantillon
+df.show(5)
+df.printSchema()
+
+# Ecriture en format Parquet
+df.write.mode("overwrite").parquet(
+    "hdfs://namenode:8020/user/output/sales_parquet"
+)
+
+# Arret de la session
+spark.stop()
+\end{lstlisting}
+
+\newpage
+
+% ============================================
+% CHAPITRE 7 : BENCHMARK PARQUET VS HBASE
+% ============================================
+
+\section{Évaluation comparative Parquet vs HBase}
+
+\subsection{Objectif de la comparaison}
+
+Ce benchmark compare deux approches de stockage :
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Parquet sur HDFS} : Stockage orienté colonnes, optimisé pour l'analytique
+    \item \textbf{HBase} : Base NoSQL orientée colonnes, optimisée pour l'accès rapide par clé
+\end{itemize}
+
+Les opérations testées incluent l'insertion, la lecture séquentielle, et les agrégations.
+
+\subsection{Préparation de HBase}
+
+Créez la table HBase nécessaire :
+
+\begin{lstlisting}[language=powershell, caption={Création de la table HBase}]
+docker exec -it hbase-master hbase shell
+\end{lstlisting}
+
+Dans le shell HBase :
+
+\begin{lstlisting}[language=bash, caption={Commandes HBase shell}]
+# Suppression si elle existe
+disable 'sales'
+drop 'sales'
+
+# Creation de la nouvelle table
+create 'sales', 'cf'
+
+# Verification
+list
+exit
+\end{lstlisting}
+
+Ou en mode automatique :
+
+\begin{lstlisting}[language=powershell, caption={Création automatique de la table}]
+docker exec hbase-master bash -lc "echo \"create 'sales', 'cf'\" | hbase shell"
+docker exec hbase-master /bin/sh -lc "echo 'list' | /hbase/bin/hbase shell"
+\end{lstlisting}
+
+\subsection{Copie des scripts de benchmark}
+
+Copiez tous les scripts nécessaires :
+
+\begin{lstlisting}[language=powershell, caption={Copie des scripts de benchmark}]
+docker cp .\benchmarks\benchmark_hbase.py spark-master-new:/benchmark_hbase.py
+docker cp .\benchmarks\benchmark_parquet_complete.py spark-master-new:/benchmark_parquet_complete.py
+docker cp .\benchmarks\benchmark_config.py spark-master-new:/benchmark_config.py
+docker cp .\benchmarks\generate_comparison.py spark-master-new:/generate_comparison.py
+\end{lstlisting}
+
+\subsection{Exécution du benchmark HBase}
+
+\begin{lstlisting}[language=powershell, caption={Benchmark HBase}]
+docker exec spark-master-new /spark/bin/spark-submit `
+  --master spark://spark-master-new:7077 `
+  --files /spark/conf/hbase-site.xml `
+  --packages org.apache.hbase:hbase-client:2.1.3,org.apache.hbase:hbase-common:2.1.3 `
+  /benchmark_hbase.py
+\end{lstlisting}
+
+\subsection{Exécution du benchmark Parquet}
+
+\begin{lstlisting}[language=powershell, caption={Benchmark Parquet}]
+docker exec spark-master-new /spark/bin/spark-submit `
+  --master spark://spark-master-new:7077 `
+  /benchmark_parquet_complete.py
+\end{lstlisting}
+
+\subsection{Génération du tableau comparatif}
+
+Générez une synthèse comparative des deux systèmes :
+
+\begin{lstlisting}[language=powershell, caption={Génération de la comparaison}]
+docker exec spark-master-new /spark/bin/spark-submit `
+  --master spark://spark-master-new:7077 `
+  /generate_comparison.py
+\end{lstlisting}
+
+\subsection{Consultation des métriques}
+
+Consultez les résultats des benchmarks :
+
+\begin{lstlisting}[language=powershell, caption={Consultation des métriques HBase}]
+docker exec spark-master-new /spark/bin/spark-sql -e "SELECT * FROM perf.hbase_metrics;"
+\end{lstlisting}
+
+\begin{lstlisting}[language=powershell, caption={Consultation des métriques Parquet}]
+docker exec spark-master-new /spark/bin/spark-sql -e "SELECT * FROM perf.parquet_metrics;"
+\end{lstlisting}
+
+\begin{lstlisting}[language=powershell, caption={Consultation du tableau comparatif}]
+docker exec spark-master-new /spark/bin/spark-sql -e "SELECT * FROM perf.comparison_results;"
+\end{lstlisting}
+
+\begin{infobox}[Analyse des résultats]
+Typiquement, vous constaterez que :
+\begin{itemize}[nosep]
+    \item \textbf{HBase} excelle pour les insertions et les lectures par clé
+    \item \textbf{Parquet} est supérieur pour les lectures séquentielles et les agrégations
+    \item Le choix dépend du cas d'usage : OLTP vs OLAP
+\end{itemize}
+\end{infobox}
+
+\newpage
+
+% ============================================
+% CHAPITRE 8 : SPARK ML BENCHMARK
+% ============================================
+
+\section{Benchmark des algorithmes de Machine Learning}
+
+\subsection{Objectif}
+
+Cette section évalue les performances de différents algorithmes de Machine Learning de Spark MLlib sur les données stockées en Parquet.
+
+\subsection{Préparation de l'environnement Python}
+
+Installez les dépendances nécessaires dans le conteneur :
+
+\begin{lstlisting}[language=powershell, caption={Installation des dépendances Python}]
+docker exec -it spark-master-new bash
+apk update
+apk add --no-cache py3-numpy py3-pip
+pip3 install ydata-profiling
+exit
+\end{lstlisting}
+
+\subsection{Vérification des données}
+
+Assurez-vous que les données Parquet sont disponibles :
+
+\begin{lstlisting}[language=powershell, caption={Vérification des données}]
+docker exec spark-master-new /spark/bin/spark-sql -e "SHOW TABLES IN perf;"
+docker exec spark-master-new /spark/bin/spark-sql -e "SELECT COUNT(*) FROM perf.sales_parquet;"
+\end{lstlisting}
+
+\subsection{Exécution du benchmark ML}
+
+Lancez le benchmark des modèles de classification :
+
+\begin{lstlisting}[language=powershell, caption={Lancement du benchmark ML}]
+docker exec spark-master-new /spark/bin/spark-submit `
+  --master spark://spark-master-new:7077 `
+  /spark_ml/ml_benchmark.py `
+  --table perf.sales_parquet `
+  --dataset sales `
+  --source-format parquet `
+  --split-strategy random `
+  --label-quantile 0.75
+\end{lstlisting}
+
+\begin{warningbox}[Temps d'exécution]
+Le benchmark ML peut prendre de 10 à 30 minutes selon la taille du dataset et les ressources système. Les modèles testés incluent Logistic Regression, Decision Tree, Random Forest, et Gradient Boosted Trees.
+\end{warningbox}
+
+\subsection{Consultation des résultats}
+
+Affichez les métriques de performance des modèles :
+
+\begin{lstlisting}[language=powershell, caption={Consultation des résultats ML}]
+docker exec spark-master-new /spark/bin/spark-sql -e "
+SELECT 
+    model,
+    ROUND(auc_roc, 4) AS auc_roc,
+    ROUND(accuracy, 4) AS accuracy,
+    ROUND(precision, 4) AS precision,
+    ROUND(recall, 4) AS recall,
+    ROUND(f1, 4) AS f1,
+    ROUND(train_time_s, 2) AS train_time_s
+FROM perf.ml_benchmark_results
+ORDER BY auc_roc DESC;"
+\end{lstlisting}
+
+\subsection{Export des résultats en CSV}
+
+Exportez les résultats pour analyse externe :
+
+\begin{lstlisting}[language=powershell, caption={Export en CSV}]
+# Export via script Python
+docker exec spark-master-new /spark/bin/spark-submit /tmp/export_ml_results.py
+
+# Recuperation locale
+docker cp spark-master-new:/spark_ml/output_ml_results/. .\ml_results_csv
+
+# Visualisation rapide
+Get-ChildItem .\ml_results_csv
+Get-Content .\ml_results_csv\part-00000*.csv | Select-Object -First 20
+\end{lstlisting}
+
+\newpage
+
+% ============================================
+% CHAPITRE 9 : CONSULTATION ET ANALYSE
+% ============================================
+
+\section{Analyse et interprétation des résultats}
+
+\subsection{Tables Hive créées}
+
+Le projet génère plusieurs tables dans la base \texttt{perf} :
+
+\begin{lstlisting}[language=powershell, caption={Liste des tables créées}]
+docker exec spark-master-new /spark/bin/spark-sql -e "SHOW DATABASES;"
+docker exec spark-master-new /spark/bin/spark-sql -e "USE perf; SHOW TABLES;"
+\end{lstlisting}
+
+Les tables suivantes sont disponibles :
+
+\begin{center}
+\begin{tabular}{|l|p{8cm}|}
+\hline
+\textbf{Table} & \textbf{Description} \\
+\hline
+format\_benchmark\_results & Résultats du benchmark des formats (CSV, Avro, ORC, Parquet) \\
+\hline
+sales\_parquet & Données de ventes au format Parquet \\
+\hline
+hbase\_metrics & Métriques de performance HBase \\
+\hline
+parquet\_metrics & Métriques de performance Parquet \\
+\hline
+comparison\_results & Comparaison directe Parquet vs HBase \\
+\hline
+ml\_benchmark\_results & Résultats des modèles ML \\
+\hline
+ml\_input\_summary & Statistiques des données d'entrée ML \\
+\hline
+\end{tabular}
+\end{center}
+
+\subsection{Synthèse des benchmarks de formats}
+
+\begin{lstlisting}[language=powershell, caption={Résultats agrégés par format}]
+docker exec spark-master-new /spark/bin/spark-sql -e "
+SELECT 
+    dataset,
+    format,
+    rows,
+    ROUND(write_time_s, 2) AS write_s,
+    ROUND(read_time_s, 2) AS read_s,
+    ROUND(size_mb, 2) AS size_mb,
+    ROUND((rows / read_time_s) / 1000, 2) AS throughput_k_rows_per_s
+FROM perf.format_benchmark_results
+ORDER BY dataset, write_time_s;"
+\end{lstlisting}
+
+\subsection{Vérification des fichiers HDFS}
+
+Examinez les fichiers générés sur HDFS :
+
+\begin{lstlisting}[language=powershell, caption={Exploration des fichiers HDFS}]
+# Structure complete
+docker exec namenode hdfs dfs -ls -R /user/output/
+
+# Tailles des fichiers
+docker exec namenode hdfs dfs -du -h /user/output/
+\end{lstlisting}
+
+\newpage
+
+% ============================================
+% CHAPITRE 10 : MAINTENANCE ET DÉPANNAGE
+% ============================================
+
+\section{Maintenance, dépannage et opérations courantes}
+
+\subsection{Accès aux shells interactifs}
+
+\begin{lstlisting}[language=powershell, caption={Shells disponibles}]
+# Shell PySpark
+docker exec -it spark-master-new /spark/bin/pyspark --master spark://spark-master-new:7077
+
+# Shell Spark SQL
+docker exec -it spark-master-new /spark/bin/spark-sql
+
+# Shell HBase
+docker exec -it hbase-master hbase shell
+
+# Shell Bash NameNode
+docker exec -it namenode bash
+\end{lstlisting}
+
+\subsection{Consultation des logs}
+
+Pour diagnostiquer les problèmes :
+
+\begin{lstlisting}[language=powershell, caption={Consultation des logs}]
+# Logs Spark Master
+docker logs spark-master-new
+
+# Logs HBase
+docker logs hbase-master
+
+# Logs Hive Metastore
+docker logs hive-metastore
+
+# Logs en temps reel
+docker logs -f spark-master-new
+\end{lstlisting}
+
+\subsection{Transfert de fichiers}
+
+\begin{lstlisting}[language=powershell, caption={Copie de fichiers}]
+# Local vers conteneur
+docker cp .\mon_script.py spark-master-new:/tmp/
+
+# Conteneur vers local
+docker cp spark-master-new:/tmp/results.csv .\
+
+# HDFS vers local (via NameNode)
+docker exec namenode hdfs dfs -get /user/data/fichier.csv /tmp/
+docker cp namenode:/tmp/fichier.csv .\
+\end{lstlisting}
+
+\subsection{Gestion de l'infrastructure}
+
+\begin{lstlisting}[language=powershell, caption={Arrêt des services}]
+# Arreter sans supprimer les donnees
+docker-compose stop
+
+# Redemarrer les services
+docker-compose start
+
+# Arreter et supprimer les conteneurs
+docker-compose down
+\end{lstlisting}
+
+\begin{warningbox}[Suppression complète]
+Pour supprimer tous les conteneurs ET les volumes (perte de données) :
+\begin{lstlisting}[language=powershell]
+docker-compose down -v
+\end{lstlisting}
+Cette commande est irréversible et efface toutes les données persistantes.
+\end{warningbox}
+
+\subsection{Nettoyage des données}
+
+\begin{lstlisting}[language=powershell, caption={Nettoyage sélectif}]
+# Supprimer les fichiers de sortie HDFS
+docker exec namenode hdfs dfs -rm -r /user/output/*
+
+# Supprimer la base perf dans Hive
+docker exec spark-master-new /spark/bin/spark-sql -e "DROP DATABASE IF EXISTS perf CASCADE;"
+
+# Reconstruire la table HBase
+docker exec -it hbase-master hbase shell
+# Dans le shell: disable 'sales'; drop 'sales'; create 'sales', 'cf';
+\end{lstlisting}
+
+\newpage
+
+% ============================================
+% CHAPITRE 11 : RÉSULTATS ET RECOMMANDATIONS
+% ============================================
+
+\section{Synthèse des résultats et recommandations}
+
+\subsection{Performance des formats}
+
+Les benchmarks révèlent généralement les tendances suivantes :
+
+\begin{center}
+\begin{tabular}{|l|c|c|c|}
+\hline
+\textbf{Format} & \textbf{Compression} & \textbf{Lecture} & \textbf{Analytique} \\
+\hline
+CSV & Faible & Lente & Médiocre \\
+Avro & Moyenne & Moyenne & Bonne \\
+ORC & Élevée & Rapide & Excellente \\
+Parquet & Élevée & Rapide & Excellente \\
+\hline
+\end{tabular}
+\end{center}
+
+\textbf{Recommandations :}
+\begin{itemize}[leftmargin=*]
+    \item \textbf{CSV} : Uniquement pour l'import/export et les petits volumes
+    \item \textbf{Avro} : Pour les flux de données temps réel (orienté lignes)
+    \item \textbf{ORC} : Optimal pour Hive et les requêtes complexes
+    \item \textbf{Parquet} : Meilleur choix pour Spark et l'analytique distribuée
+\end{itemize}
+
+\subsection{Parquet vs HBase}
+
+\textbf{HBase excelle pour :}
+\begin{itemize}[nosep]
+    \item Accès rapide par clé primaire (millisecondes)
+    \item Insertions/mises à jour fréquentes
+    \item Applications OLTP (transactionnelles)
+    \item Scans partiels avec filtres sur la clé
+\end{itemize}
+
+\textbf{Parquet excelle pour :}
+\begin{itemize}[nosep]
+    \item Lectures séquentielles massives
+    \item Agrégations et analyses OLAP
+    \item Compression et efficacité du stockage
+    \item Requêtes sur colonnes spécifiques
+\end{itemize}
+
+\subsection{Performance Machine Learning}
+
+Les modèles testés montrent généralement :
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Logistic Regression} : Rapide, bonne baseline (AUC $\sim$ 0.75)
+    \item \textbf{Decision Tree} : Interprétable mais tendance au surapprentissage
+    \item \textbf{Random Forest} : Meilleur compromis précision/temps (AUC $\sim$ 0.82)
+    \item \textbf{Gradient Boosted Trees} : Meilleure AUC ($\sim$ 0.85) mais plus lent
+\end{itemize}
+
+\newpage
+
+% ============================================
+% CONCLUSION
+% ============================================
+
+\section*{Conclusion}
+\addcontentsline{toc}{section}{Conclusion}
+
+\subsection*{Bilan du projet}
+
+Ce projet a permis de mettre en place une infrastructure Big Data complète et d'effectuer une évaluation comparative rigoureuse de différentes technologies de stockage et de traitement. À travers une démarche empirique basée sur des benchmarks systématiques, nous avons pu quantifier les performances relatives des formats CSV, Avro, ORC et Parquet, ainsi que comparer deux paradigmes de stockage : Parquet sur HDFS et HBase.
+
+\subsection*{Principaux enseignements}
+
+Les résultats obtenus confirment plusieurs principes fondamentaux du Big Data :
+
+\begin{itemize}[leftmargin=2cm]
+    \item Les formats orientés colonnes (Parquet, ORC) offrent des performances nettement supérieures pour les charges analytiques OLAP
+    \item La compression a un impact majeur sur les coûts de stockage et les temps de lecture
+    \item Le choix entre Parquet et HBase dépend fortement des patterns d'accès : séquentiel vs aléatoire
+    \item Le format de stockage influence significativement les performances de Machine Learning
+\end{itemize}
+
+\subsection*{Recommandations pratiques}
+
+Sur la base de nos expérimentations, nous formulons les recommandations suivantes :
+
+\textbf{Pour les applications analytiques (OLAP)} : Privilégier Parquet ou ORC sur HDFS. Ces formats offrent une excellente compression et des performances optimales pour les agrégations et les scans de larges volumes.
+
+\textbf{Pour les applications transactionnelles (OLTP)} : HBase constitue le meilleur choix pour les accès par clé avec des exigences de latence faible (millisecondes).
+
+\textbf{Pour le Machine Learning} : Parquet s'impose comme le format de référence, offrant le meilleur compromis entre vitesse de lecture et efficacité de stockage.
+
+\textbf{Pour l'interopérabilité} : Avro demeure pertinent pour les flux de données nécessitant une évolution de schéma et une compatibilité inter-systèmes.
+
+% \subsection*{Perspectives et extensions}
+
+% Ce travail ouvre plusieurs pistes d'approfondissement :
+
+% \begin{enumerate}[leftmargin=2cm]
+%     \item Extension des benchmarks à des volumes de données plus importants (100M+ lignes)
+%     \item Évaluation de formats émergents comme Delta Lake et Apache Iceberg
+%     \item Intégration de flux temps réel avec Apache Kafka
+%     \item Déploiement sur un cluster distribué réel (cloud AWS/Azure/GCP)
+%     \item Analyse de la tolérance aux pannes et de la résilience
+% \end{enumerate}
+
+% \subsection*{Contribution}
+
+% Ce projet constitue une ressource pédagogique complète pour les étudiants et praticiens souhaitant comprendre concrètement les compromis entre différentes technologies Big Data. Le caractère reproductible de l'infrastructure Docker et la documentation exhaustive facilitent son utilisation dans des contextes d'enseignement ou de formation professionnelle.
+
+% Au-delà de l'aspect technique, ce travail illustre l'importance d'une démarche empirique dans le choix des technologies : plutôt que de se fier uniquement à la documentation ou aux affirmations marketing, il est crucial de mesurer concrètement les performances sur des données et des workloads représentatifs du cas d'usage cible.
+
+% \vspace{2cm}
+
+% Pour reproduire l'intégralité du projet :
+
+% \begin{lstlisting}[language=powershell, caption={Séquence complète d'exécution}]
+% # 1. Demarrage
+% docker-compose up -d
+
+% # 2. Verification (optionnel)
+% bash .\scripts\verify_services.sh
+
+% # 3. Generation des donnees
+% python .\scripts\generate_data.py .\data\large_sales.csv 1000000
+
+% # 4. Upload sur HDFS (voir section 3)
+
+% # 5. Benchmark formats
+% bash .\scripts\run_format_benchmark.sh
+
+% # 6. Benchmark Parquet vs HBase
+% bash .\scripts\run_full_benchmark.sh
+
+% # 7. Benchmark ML
+% bash .\scripts\run_spark_ml.sh
+
+% # 8. Consultation des resultats (voir section 8)
+% \end{lstlisting}
+
+\subsection{Points clés à retenir}
+
+\begin{infobox}[Meilleures pratiques]
+\begin{itemize}[nosep]
+    \item Toujours vérifier l'état des services avant de lancer les benchmarks
+    \item Adapter la mémoire Spark selon la taille des données
+    \item Utiliser Parquet pour l'analytique, HBase pour le transactionnel
+    \item Surveiller les logs en cas d'erreur
+    \item Nettoyer régulièrement les données intermédiaires sur HDFS
+\end{itemize}
+\end{infobox}
+
+\subsection{Ressources supplémentaires}
+
+\begin{itemize}[leftmargin=*]
+    \item Documentation Apache Spark : \url{https://spark.apache.org/docs/latest/}
+    \item Guide Apache HBase : \url{https://hbase.apache.org/book.html}
+    \item Format Parquet : \url{https://parquet.apache.org/}
+    \item Spark MLlib : \url{https://spark.apache.org/mllib/}
+\end{itemize}
+
+\subsection{Perspectives}
+
+Ce projet peut être étendu pour :
+
+\begin{itemize}[leftmargin=*]
+    \item Tester des volumes de données plus importants (10M+ lignes)
+    \item Comparer avec d'autres formats (Delta Lake, Iceberg)
+    \item Implémenter des pipelines de streaming avec Kafka
+    \item Ajouter des visualisations avec des notebooks Jupyter
+    \item Déployer sur un cluster distribué réel (AWS EMR, Azure HDInsight)
+\end{itemize}
+
+
+\end{document}
