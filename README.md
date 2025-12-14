@@ -15,21 +15,10 @@ Ce dépôt est un projet de comparaison de formats de fichiers (CSV, Avro, ORC, 
 - Base NoSQL: HBase (master/regionserver) pour comparaison.
 - Orchestration locale: `docker-compose.yml` pour lancer l'ensemble.
 
-### Diagramme d'architecture (emplacement pour image) 🖼️
+### Diagramme d'architecture 🖼️
 
-Ajoutez ici un schéma haute-niveau représentant les composants et flux (HDFS, Hive Metastore, Spark, HBase, conteneurs Docker, etc.).
 
-Recommandation:
-
-- Placez l'image dans `docs/assets/` ou `docs/` (ex: `docs/assets/architecture.png`).
-- Formats conseillés: `PNG`, `SVG` (SVG recommandé pour meilleure qualité).
-- Exemple d'insertion Markdown:
-
-```markdown
 ![Schéma d'architecture](docs/assets/architecture.png)
-```
-
-Si vous préférez inclure un diagramme généré (draw.io / diagrams.net / mermaid), placez le fichier source à côté de l'image et ajoutez un lien.
 
 ## Arborescence et rôle des principaux fichiers/folders 📁
 -- `docker-compose.yml` : définition des services Docker (NameNode, DataNode, Hive Metastore, Spark, HBase, PostgreSQL pour metastore, etc.).
